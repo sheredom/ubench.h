@@ -23,26 +23,45 @@ ubench.h supports some command line options:
 * `--list-tests` will list benchmark names, one per line. Output names can be
   passed to `--filter`.
 * `--output=<output>`will output a CSV file of the results.
-* `--max-deviation=<deviation>` will change the maximum deviation cut-off for a
-  failed test.
+* `--confidence=<confidence>` will change the confidence cut-off for a failed
+  test.
 
 ## Design
 
-UBench is a single header library to enable all the fun of benchmarking in C and
-C++. The library has been designed to provide an output similar to Google's
+ubench.h is a single header library to enable all the fun of benchmarking in C
+and C++. The library has been designed to provide an output similar to Google's
 googletest framework:
 
 ```
 [==========] Running 1 benchmarks.
 [ RUN      ] foo.bar
-[       OK ] foo.bar (102289906ns +- 1.751264%)
+[       OK ] foo.bar (mean 536.235us, confidence interval +- 1.457878%)
 [==========] 1 benchmarks ran.
 [  PASSED  ] 1 benchmarks
 ```
 
-Benchmarks can fail if their standard deviation exceeds a certain threshold. The
-default threshold is 2.5% - anything above this is usually a sign that there is
-too much variance to trust the benchmark result.
+Benchmarks can fail if their confidence exceeds a certain threshold. The
+default threshold is `2.5%` - anything above this is usually a sign that there
+is too much variance to trust the benchmark result. The confidence interval in
+use is the [99% confidence interval](http://sphweb.bumc.bu.edu/otlt/MPH-Modules/BS/BS704_Confidence_Intervals/BS704_Confidence_Intervals_print.html).
+This means that 99% of the samples will occur within the percentage range of the
+mean result. So a mean of `100us` with a confidence interval of `2%` means that
+`99%` of the samples will occur in the range `[98us..102us]`. This is a good
+measure of a consistent result - it eliminates the `1%` of samples that could
+easily skew the standard deviation, while giving us a good confidence on the
+data.
+
+You can change the default threshold of `2.5%` by specifying the
+`--confidence=<confidence>` option, but it is recommended that you keep a value
+that is sufficiently low to enable reproducible results.
+
+The number of iterations ran for each test is proportionate to the time taken to
+run each benchmark. The framework aims to run a single set of iterations of the
+benchmark in `100ms` - so if you benchmark takes `1ms` to run, it'll start with
+100 samples. The number of samples will increase on a failed run (a run of the
+benchmark that does not meet the confidence interval cutoff) up to a maximum of
+500 samples. At least 10 samples are always done even for longer running tests
+to ensure some meaningful confidence interval can be computed.
 
 ## UBENCH_MAIN
 

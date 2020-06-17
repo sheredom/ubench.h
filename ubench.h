@@ -239,7 +239,7 @@ struct ubench_state_s {
   struct ubench_benchmark_state_s *benchmarks;
   size_t benchmarks_length;
   FILE *output;
-  double max_deviation;
+  double confidence;
 };
 
 /* extern to the global state ubench needs to execute */
@@ -406,14 +406,6 @@ static UBENCH_INLINE FILE *ubench_fopen(const char *filename,
 #endif
 }
 
-UBENCH_WEAK int UBENCH_NOTHROW ubench_sort_func(const void *a,
-                                                const void *b) UBENCH_NOEXCEPT;
-int UBENCH_NOTHROW ubench_sort_func(const void *a,
-                                    const void *b) UBENCH_NOEXCEPT {
-  return UBENCH_CAST(int, (*UBENCH_PTR_CAST(const ubench_uint64_t *, a) -
-                           *UBENCH_PTR_CAST(const ubench_uint64_t *, b)));
-}
-
 UBENCH_WEAK int ubench_main(int argc, const char *const argv[]);
 int ubench_main(int argc, const char *const argv[]) {
   ubench_uint64_t failed = 0;
@@ -441,19 +433,19 @@ int ubench_main(int argc, const char *const argv[]) {
     /* Benchmark config switches */
     const char filter_str[] = "--filter=";
     const char output_str[] = "--output=";
-    const char max_deviation_str[] = "--max-deviation=";
+    const char confidence_str[] = "--confidence=";
 
     if (0 == ubench_strncmp(argv[index], help_str, strlen(help_str))) {
       printf("ubench.h - the single file benchmarking solution for C/C++!\n"
              "Command line Options:\n");
-      printf("  --help                      Show this message and exit.\n"
-             "  --filter=<filter>           Filter the benchmarks to run (EG. "
+      printf("  --help                    Show this message and exit.\n"
+             "  --filter=<filter>         Filter the benchmarks to run (EG. "
              "MyBench*.a would run MyBenchmark.a but not MyBenchmark.b).\n"
-             "  --list-benchmarks           List benchmarks, one per line. "
+             "  --list-benchmarks         List benchmarks, one per line. "
              "Output names can be passed to --filter.\n"
-             "  --output=<output>           Output a CSV file of the results.\n"
-             "  --max-deviation=<deviation> Change the maximum deviation "
-             "cut-off for a failed test. Defaults to 2.5%%\n");
+             "  --output=<output>         Output a CSV file of the results.\n"
+             "  --confidence=<confidence> Change the confidence cut-off for a "
+             "failed test. Defaults to 2.5%%\n");
       goto cleanup;
     } else if (0 ==
                ubench_strncmp(argv[index], filter_str, strlen(filter_str))) {
@@ -470,19 +462,16 @@ int ubench_main(int argc, const char *const argv[]) {
 
       /* when printing the benchmark list, don't actually run the benchmarks */
       goto cleanup;
-    } else if (0 == ubench_strncmp(argv[index], max_deviation_str,
-                                   strlen(max_deviation_str))) {
-      /* user wants to specify a different maximum deviation */
-      ubench_state.max_deviation =
-          atof(argv[index] + strlen(max_deviation_str));
+    } else if (0 == ubench_strncmp(argv[index], confidence_str,
+                                   strlen(confidence_str))) {
+      /* user wants to specify a different confidence */
+      ubench_state.confidence = atof(argv[index] + strlen(confidence_str));
 
       /* must be between 0 and 100 */
-      if ((ubench_state.max_deviation < 0) ||
-          (ubench_state.max_deviation > 100)) {
-        fprintf(
-            stderr,
-            "Max deviation must be in the range [0..100] (you specified %f)\n",
-            ubench_state.max_deviation);
+      if ((ubench_state.confidence < 0) || (ubench_state.confidence > 100)) {
+        fprintf(stderr,
+                "Confidence must be in the range [0..100] (you specified %f)\n",
+                ubench_state.confidence);
         goto cleanup;
       }
     }
@@ -501,14 +490,25 @@ int ubench_main(int argc, const char *const argv[]) {
          UBENCH_CAST(ubench_uint64_t, ran_benchmarks));
 
   if (ubench_state.output) {
-    fprintf(ubench_state.output, "name, mean (ns), stddev (%%),\n");
+    fprintf(ubench_state.output,
+            "name, mean (ns), stddev (%%), confidence (%%)\n");
   }
 
   for (index = 0; index < ubench_state.benchmarks_length; index++) {
     int result = 1;
     size_t mndex = 0;
-    ubench_int64_t avg_ns = 0;
-    double deviation = 0;
+    ubench_int64_t best_avg_ns = 0;
+    double best_deviation = 0;
+    double best_confidence = 101.0;
+
+#define UBENCH_MIN_ITERATIONS 10
+#define UBENCH_MAX_ITERATIONS 500
+    ubench_int64_t iterations = 10;
+    const ubench_int64_t max_iterations = UBENCH_MAX_ITERATIONS;
+    const ubench_int64_t min_iterations = UBENCH_MIN_ITERATIONS;
+    ubench_int64_t ns[UBENCH_MAX_ITERATIONS];
+#undef UBENCH_MAX_ITERATIONS
+#undef UBENCH_MIN_ITERATIONS
 
     if (ubench_should_filter(filter, ubench_state.benchmarks[index].name)) {
       continue;
@@ -517,12 +517,23 @@ int ubench_main(int argc, const char *const argv[]) {
     printf("%s[ RUN      ]%s %s\n", colours[GREEN], colours[RESET],
            ubench_state.benchmarks[index].name);
 
-    for (mndex = 0; (mndex < 500) && (result != 0); mndex++) {
-      size_t kndex = 0;
-#define ITERATIONS 102
-      const unsigned iterations = ITERATIONS;
-      ubench_int64_t ns[ITERATIONS];
-#undef ITERATIONS
+    // Time once to work out the base number of iterations to use.
+    ns[0] = ubench_ns();
+    ubench_state.benchmarks[index].func(ubench_state.benchmarks[index].index);
+    ns[0] = ubench_ns() - ns[0];
+
+    iterations = (100 * 1000 * 1000) / ns[0];
+    iterations = iterations < min_iterations ? min_iterations : iterations;
+    iterations = iterations > max_iterations ? max_iterations : iterations;
+
+    for (mndex = 0; (mndex < 100) && (result != 0); mndex++) {
+      ubench_int64_t kndex = 0;
+      ubench_int64_t avg_ns = 0;
+      double deviation = 0;
+      double confidence = 0;
+
+      iterations = iterations * (UBENCH_CAST(ubench_int64_t, mndex) + 1);
+      iterations = iterations > max_iterations ? max_iterations : iterations;
 
       for (kndex = 0; kndex < iterations; kndex++) {
         ns[kndex] = ubench_ns();
@@ -531,58 +542,87 @@ int ubench_main(int argc, const char *const argv[]) {
         ns[kndex] = ubench_ns() - ns[kndex];
       }
 
-      // Sort the results.
-      qsort(ns, iterations, sizeof(ubench_int64_t), ubench_sort_func);
-
-      avg_ns = 0;
-      deviation = 0;
-
-      for (kndex = 1; kndex < (iterations - 1); kndex++) {
+      for (kndex = 0; kndex < iterations; kndex++) {
         avg_ns += ns[kndex];
       }
 
-      avg_ns /= (iterations - 2);
+      avg_ns /= iterations;
 
-      for (kndex = 1; kndex < (iterations - 1); kndex++) {
+      for (kndex = 0; kndex < iterations; kndex++) {
         const double v = UBENCH_CAST(double, ns[kndex] - avg_ns);
         deviation += v * v;
       }
 
-      deviation /= (iterations - 2);
+      deviation = sqrt(deviation / iterations);
 
-      deviation = sqrt(deviation);
+      // Confidence is the 99% confidence index - whose magic value is 2.576.
+      confidence = 2.576 * deviation / sqrt(UBENCH_CAST(double, iterations));
+      confidence = (confidence / avg_ns) * 100;
 
       deviation = (deviation / avg_ns) * 100;
 
-      // If the standard deviation is greater than the max deviation of the
-      // average time, benchmark is too noisy.
-      result = deviation > ubench_state.max_deviation;
+      // If we've found a more confident solution, use that.
+      result = confidence > ubench_state.confidence;
+
+      // If the deviation beats our previous best, record it.
+      if (confidence < best_confidence) {
+        best_avg_ns = avg_ns;
+        best_deviation = deviation;
+        best_confidence = confidence;
+      }
     }
 
     if (result) {
-      printf("Standard deviation %f%% exceeds maximum permitted %f%%\n",
-             deviation, ubench_state.max_deviation);
+      printf("confidence interval %f%% exceeds maximum permitted %f%%\n",
+             best_confidence, ubench_state.confidence);
     }
 
     if (ubench_state.output) {
-      fprintf(ubench_state.output, "%s, %" UBENCH_PRId64 ", %f,\n",
-              ubench_state.benchmarks[index].name, avg_ns, deviation);
+      fprintf(ubench_state.output, "%s, %" UBENCH_PRId64 ", %f, %f,\n",
+              ubench_state.benchmarks[index].name, best_avg_ns, best_deviation,
+              best_confidence);
     }
 
-    if (0 != result) {
-      const size_t failed_benchmark_index = failed_benchmarks_length++;
-      failed_benchmarks = UBENCH_PTR_CAST(
-          size_t *, realloc(UBENCH_PTR_CAST(void *, failed_benchmarks),
-                            sizeof(size_t) * failed_benchmarks_length));
-      failed_benchmarks[failed_benchmark_index] = index;
-      failed++;
-      printf("%s[  FAILED  ]%s %s (%" UBENCH_PRId64 "ns +- %f%%)\n",
-             colours[RED], colours[RESET], ubench_state.benchmarks[index].name,
-             avg_ns, deviation);
-    } else {
-      printf("%s[       OK ]%s %s (%" UBENCH_PRId64 "ns +- %f%%)\n",
-             colours[GREEN], colours[RESET],
-             ubench_state.benchmarks[index].name, avg_ns, deviation);
+    {
+      const char *const colour = (0 != result) ? colours[RED] : colours[GREEN];
+      const char *const status =
+          (0 != result) ? "[  FAILED  ]" : "[       OK ]";
+      const char *unit = "us";
+
+      if (0 != result) {
+        const size_t failed_benchmark_index = failed_benchmarks_length++;
+        failed_benchmarks = UBENCH_PTR_CAST(
+            size_t *, realloc(UBENCH_PTR_CAST(void *, failed_benchmarks),
+                              sizeof(size_t) * failed_benchmarks_length));
+        failed_benchmarks[failed_benchmark_index] = index;
+        failed++;
+      }
+
+      printf("%s%s%s %s (mean ", colour, status, colours[RESET],
+             ubench_state.benchmarks[index].name);
+
+      for (mndex = 0; mndex < 2; mndex++) {
+        if (best_avg_ns <= 1000000) {
+          break;
+        }
+
+        // If the average is greater than a million, we reduce it and change the
+        // unit we report.
+        best_avg_ns /= 1000;
+
+        switch (mndex) {
+        case 0:
+          unit = "ms";
+          break;
+        case 1:
+          unit = "s";
+          break;
+        }
+      }
+
+      printf("%" UBENCH_PRId64 ".%03" UBENCH_PRId64
+             "%s, confidence interval +- %f%%)\n",
+             best_avg_ns / 1000, best_avg_ns % 1000, unit, best_confidence);
     }
   }
 

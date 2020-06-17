@@ -19,4 +19,4 @@ script:
   - cd build
   - cmake -DCMAKE_BUILD_TYPE=$CONFIGURATION ../test
   - make
-  - ./ubench_test --max-deviation=100
+  - ./ubench_test --confidence=100
