@@ -45,3 +45,25 @@ UBENCH(cpp11, do_nothing) {
   memcpy(b, a, sizeof(a));
   UBENCH_DO_NOTHING(b);
 }
+
+struct cpp11_my_fixture {
+  char *data;
+};
+
+UBENCH_F_SETUP(cpp11_my_fixture) {
+  const int size = 128 * 1024 * 1024;
+  ubench_fixture->data = static_cast<char *>(malloc(size));
+  memset(ubench_fixture->data, ' ', size - 2);
+  ubench_fixture->data[size - 1] = '\0';
+  ubench_fixture->data[size / 2] = 'f';
+}
+
+UBENCH_F_TEARDOWN(cpp11_my_fixture) { free(ubench_fixture->data); }
+
+UBENCH_F(cpp11_my_fixture, strchr) {
+  UBENCH_DO_NOTHING(strchr(ubench_fixture->data, 'f'));
+}
+
+UBENCH_F(cpp11_my_fixture, strrchr) {
+  UBENCH_DO_NOTHING(strrchr(ubench_fixture->data, 'f'));
+}
