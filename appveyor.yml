@@ -41,4 +41,4 @@ build_script:
   - copy %CONFIGURATION%\ubench_test.exe ubench_test.exe
 
 test_script:
-  - ubench_test.exe --max-deviation=100
+  - ubench_test.exe --confidence=100
