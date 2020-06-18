@@ -106,6 +106,45 @@ The UBENCH macro takes two parameters - the first being the set that the
 benchmark belongs to, the second being the name of the benchmark. This allows
 benchmarks to be grouped for convenience.
 
+## Define a Fixtured Benchmark
+
+Fixtures are a way to have some state that is initialized once and then used
+throughout a benchmark. They let you take the cost of setting up the benchmark
+out of the cost of testing whatever function you want to use it with:
+
+```c
+// Declare a struct that holds the state for your benchmark.
+struct foo {
+  char *data;
+};
+
+// Use UBENCH_F_SETUP to initialize your struct (called ubench_fixture in here).
+UBENCH_F_SETUP(foo) {
+  const int size = 128 * 1024 * 1024;
+  ubench_fixture->data = (char *)malloc(size);
+  memset(ubench_fixture->data, ' ', size - 2);
+  ubench_fixture->data[size - 1] = '\0';
+  ubench_fixture->data[size / 2] = 'f';
+}
+
+// Use UBENCH_F_TEARDOWM to destroy your struct when complete.
+UBENCH_F_TEARDOWN(foo) { free(ubench_fixture->data); }
+
+// Define a benchmark that uses your fixture.
+UBENCH_F(foo, strchr) {
+  UBENCH_DO_NOTHING(strchr(ubench_fixture->data, 'f'));
+}
+
+// You can define as many benchmarks that use the same fixture.
+UBENCH_F(foo, strrchr) {
+  UBENCH_DO_NOTHING(strrchr(ubench_fixture->data, 'f'));
+}
+```
+
+Note that fixtures are not guaranteed to be constructed only once - but they are
+guaranteed to not impede on the collection of accurate metrics for the running
+of your benchmark.
+
 ## Testing Macros
 
 We currently provide the following macros to be used within UBENCHs:
