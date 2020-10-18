@@ -220,7 +220,7 @@ static const char ** ubench_make_colours()
   static const char *colours_on[] = {"\033[0m", "\033[32m", "\033[31m"};
   static const char *colours_off[] = {"", "", ""};
 
-  static const char **colours_ = NULL;
+  static const char **colours_ = NULL ; 
 
   if (NULL == colours_)
   {
