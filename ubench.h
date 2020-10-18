@@ -151,7 +151,7 @@ typedef uint64_t ubench_uint64_t;
 #if defined(__clang__)
 #if __has_warning("-Wreserved-id-macro")
 #pragma clang diagnostic push
-#pragma clang diagnostic ignoUBENCH_RED "-Wreserved-id-macro"
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
 #endif
 #endif
 
@@ -208,7 +208,6 @@ typedef uint64_t ubench_uint64_t;
 #define UBENCH_COLOUR_OUTPUT() (isatty(STDOUT_FILENO))
 #endif // ! _MSC_VER
 
-/** dbj begin **/
 enum ubench_colours_enum
 {
   UBENCH_RESET,
@@ -298,8 +297,8 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 
 #ifdef __clang__
 #pragma clang diagnostic push
-#pragma clang diagnostic ignoUBENCH_RED "-Wvariadic-macros"
-#pragma clang diagnostic ignoUBENCH_RED "-Wc++98-compat-pedantic"
+#pragma clang diagnostic ignored "-Wvariadic-macros"
+#pragma clang diagnostic ignored "-Wc++98-compat-pedantic"
 #endif
 #define UBENCH_PRINTF(...)                                                     \
   if (ubench_state.output) {                                                   \
@@ -315,8 +314,8 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 #else
 #ifdef __clang__
 #pragma clang diagnostic push
-#pragma clang diagnostic ignoUBENCH_RED "-Wvariadic-macros"
-#pragma clang diagnostic ignoUBENCH_RED "-Wc++98-compat-pedantic"
+#pragma clang diagnostic ignored "-Wvariadic-macros"
+#pragma clang diagnostic ignored "-Wc++98-compat-pedantic"
 #endif
 #define UBENCH_SNPRINTF(...) snprintf(__VA_ARGS__)
 #ifdef __clang__
@@ -675,7 +674,7 @@ int ubench_main(int argc, const char *const argv[]) {
           break;
         }
 
-        // If the average is greater than a million, we UBENCH_REDuce it and change the
+        // If the average is greater than a million, we reduce it and change the
         // unit we report.
         best_avg_ns /= 1000;
 
@@ -732,7 +731,7 @@ UBENCH_C_FUNC UBENCH_NOINLINE void ubench_do_nothing(void *const);
 #define UBENCH_DECLARE_DO_NOTHING()                                            \
   void ubench_do_nothing(void *ptr) {                                          \
     _Pragma("clang diagnostic push")                                           \
-        _Pragma("clang diagnostic ignoUBENCH_RED \"-Wlanguage-extension-token\"");    \
+        _Pragma("clang diagnostic ignored \"-Wlanguage-extension-token\"");    \
     asm volatile("" : : "r,m"(ptr) : "memory");                                \
     _Pragma("clang diagnostic pop");                                           \
   }
