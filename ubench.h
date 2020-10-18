@@ -1,10 +1,10 @@
 /*
    The latest version of this library is available on GitHub;
-   https://github.com/sheUBENCH_REDom/ubench.h
+   https://github.com/sheredom/ubench.h
 */
 
 /*
-   This is free and unencumbeUBENCH_RED software released into the public domain.
+   This is free and unencumbered software released into the public domain.
 
    Anyone is free to copy, modify, publish, use, compile, sell, or
    distribute this software, either in source code form or as a compiled
@@ -30,8 +30,8 @@
    For more information, please refer to <http://unlicense.org/>
 */
 
-#ifndef SHEUBENCH_REDOM_UBENCH_H_INCLUDED
-#define SHEUBENCH_REDOM_UBENCH_H_INCLUDED
+#ifndef SHEREDOM_UBENCH_H_INCLUDED
+#define SHEREDOM_UBENCH_H_INCLUDED
 
 #ifdef _MSC_VER
 /*
@@ -189,8 +189,7 @@ typedef uint64_t ubench_uint64_t;
 #endif
 
 #ifdef _MSC_VER
-// dbj added
-// the usage of _WIN32_WINNT
+// _WIN32_WINNT
 #include <sdkddkver.h>
 /*
     io.h contains definitions for some structures with natural padding. This is
@@ -776,4 +775,4 @@ UBENCH_C_FUNC UBENCH_NOINLINE void ubench_do_nothing(void *const);
     return ubench_main(argc, argv);                                            \
   }
 
-#endif /* SHEUBENCH_REDOM_UBENCH_H_INCLUDED */
+#endif /* SHEREDOM_UBENCH_H_INCLUDED */
