@@ -1,10 +1,10 @@
 /*
    The latest version of this library is available on GitHub;
-   https://github.com/sheredom/ubench.h
+   https://github.com/sheUBENCH_REDom/ubench.h
 */
 
 /*
-   This is free and unencumbered software released into the public domain.
+   This is free and unencumbeUBENCH_RED software released into the public domain.
 
    Anyone is free to copy, modify, publish, use, compile, sell, or
    distribute this software, either in source code form or as a compiled
@@ -30,8 +30,8 @@
    For more information, please refer to <http://unlicense.org/>
 */
 
-#ifndef SHEREDOM_UBENCH_H_INCLUDED
-#define SHEREDOM_UBENCH_H_INCLUDED
+#ifndef SHEUBENCH_REDOM_UBENCH_H_INCLUDED
+#define SHEUBENCH_REDOM_UBENCH_H_INCLUDED
 
 #ifdef _MSC_VER
 /*
@@ -151,7 +151,7 @@ typedef uint64_t ubench_uint64_t;
 #if defined(__clang__)
 #if __has_warning("-Wreserved-id-macro")
 #pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wreserved-id-macro"
+#pragma clang diagnostic ignoUBENCH_RED "-Wreserved-id-macro"
 #endif
 #endif
 
@@ -189,6 +189,9 @@ typedef uint64_t ubench_uint64_t;
 #endif
 
 #ifdef _MSC_VER
+// dbj added
+// the usage of _WIN32_WINNT
+#include <sdkddkver.h>
 /*
     io.h contains definitions for some structures with natural padding. This is
     uninteresting, but for some reason MSVC's behaviour is to warn about
@@ -198,11 +201,49 @@ typedef uint64_t ubench_uint64_t;
 #pragma warning(push, 1)
 #include <io.h>
 #pragma warning(pop)
-#define UBENCH_COLOUR_OUTPUT() (_isatty(_fileno(stdout)))
-#else
+#define UBENCH_COLOUR_OUTPUT() ( (_isatty(_fileno(stdout))) \
+&& (_WIN32_WINNT >= _WIN32_WINNT_WIN10))
+
+#else // ! _MSC_VER
 #include <unistd.h>
 #define UBENCH_COLOUR_OUTPUT() (isatty(STDOUT_FILENO))
-#endif
+#endif // ! _MSC_VER
+
+/** dbj begin **/
+enum ubench_colours_enum
+{
+  UBENCH_RESET,
+  UBENCH_GREEN,
+  UBENCH_RED
+};
+
+static const char ** ubench_make_colours()
+{
+  static const char *colours_on[] = {"\033[0m", "\033[32m", "\033[31m"};
+  static const char *colours_off[] = {"", "", ""};
+
+  static const char **colours_ = NULL;
+
+  if (NULL == colours_)
+  {
+    if (!UBENCH_COLOUR_OUTPUT())
+    {
+      colours_ = colours_off;
+    }
+    else
+    {
+      colours_ = colours_on;
+// ridiculous hack,and which is not ..
+// on Win10 cmd.exe this switches on VT100
+  #ifdef _MSC_VER
+    system(" ") ;
+  #endif // _MSC_VER
+    }
+  }
+
+  return colours_;
+}
+/** dbj end   **/
 
 static UBENCH_INLINE ubench_int64_t ubench_ns(void) {
 #ifdef _MSC_VER
@@ -258,8 +299,8 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 
 #ifdef __clang__
 #pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wvariadic-macros"
-#pragma clang diagnostic ignored "-Wc++98-compat-pedantic"
+#pragma clang diagnostic ignoUBENCH_RED "-Wvariadic-macros"
+#pragma clang diagnostic ignoUBENCH_RED "-Wc++98-compat-pedantic"
 #endif
 #define UBENCH_PRINTF(...)                                                     \
   if (ubench_state.output) {                                                   \
@@ -275,8 +316,8 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 #else
 #ifdef __clang__
 #pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wvariadic-macros"
-#pragma clang diagnostic ignored "-Wc++98-compat-pedantic"
+#pragma clang diagnostic ignoUBENCH_RED "-Wvariadic-macros"
+#pragma clang diagnostic ignoUBENCH_RED "-Wc++98-compat-pedantic"
 #endif
 #define UBENCH_SNPRINTF(...) snprintf(__VA_ARGS__)
 #ifdef __clang__
@@ -378,7 +419,7 @@ UBENCH_WEAK int ubench_should_filter(const char *filter,
             */
             break;
           } else if (*filter_cur != *benchmark_cur) {
-            /* otherwise our filter didn't match, so reset it */
+            /* otherwise our filter didn't match, so UBENCH_RESET it */
             filter_cur = filter_wildcard;
           }
 
@@ -459,15 +500,7 @@ int ubench_main(int argc, const char *const argv[]) {
   const char *filter = UBENCH_NULL;
   ubench_uint64_t ran_benchmarks = 0;
 
-  enum colours { RESET, GREEN, RED };
-
-  const int use_colours = UBENCH_COLOUR_OUTPUT();
-  const char *colours[] = {"\033[0m", "\033[32m", "\033[31m"};
-  if (!use_colours) {
-    for (index = 0; index < sizeof colours / sizeof colours[0]; index++) {
-      colours[index] = "";
-    }
-  }
+  const char ** colours = ubench_make_colours() ; // dbj changed to this
 
   /* loop through all arguments looking for our options */
   for (index = 1; index < UBENCH_CAST(size_t, argc); index++) {
@@ -530,7 +563,7 @@ int ubench_main(int argc, const char *const argv[]) {
   }
 
   printf("%s[==========]%s Running %" UBENCH_PRIu64 " benchmarks.\n",
-         colours[GREEN], colours[RESET],
+         colours[UBENCH_GREEN], colours[UBENCH_RESET],
          UBENCH_CAST(ubench_uint64_t, ran_benchmarks));
 
   if (ubench_state.output) {
@@ -558,7 +591,7 @@ int ubench_main(int argc, const char *const argv[]) {
       continue;
     }
 
-    printf("%s[ RUN      ]%s %s\n", colours[GREEN], colours[RESET],
+    printf("%s[ RUN      ]%s %s\n", colours[UBENCH_GREEN], colours[UBENCH_RESET],
            ubench_state.benchmarks[index].name);
 
     // Time once to work out the base number of iterations to use.
@@ -621,7 +654,7 @@ int ubench_main(int argc, const char *const argv[]) {
     }
 
     {
-      const char *const colour = (0 != result) ? colours[RED] : colours[GREEN];
+      const char *const colour = (0 != result) ? colours[UBENCH_RED] : colours[UBENCH_GREEN];
       const char *const status =
           (0 != result) ? "[  FAILED  ]" : "[       OK ]";
       const char *unit = "us";
@@ -635,7 +668,7 @@ int ubench_main(int argc, const char *const argv[]) {
         failed++;
       }
 
-      printf("%s%s%s %s (mean ", colour, status, colours[RESET],
+      printf("%s%s%s %s (mean ", colour, status, colours[UBENCH_RESET],
              ubench_state.benchmarks[index].name);
 
       for (mndex = 0; mndex < 2; mndex++) {
@@ -643,7 +676,7 @@ int ubench_main(int argc, const char *const argv[]) {
           break;
         }
 
-        // If the average is greater than a million, we reduce it and change the
+        // If the average is greater than a million, we UBENCH_REDuce it and change the
         // unit we report.
         best_avg_ns /= 1000;
 
@@ -664,15 +697,15 @@ int ubench_main(int argc, const char *const argv[]) {
   }
 
   printf("%s[==========]%s %" UBENCH_PRIu64 " benchmarks ran.\n",
-         colours[GREEN], colours[RESET], ran_benchmarks);
-  printf("%s[  PASSED  ]%s %" UBENCH_PRIu64 " benchmarks.\n", colours[GREEN],
-         colours[RESET], ran_benchmarks - failed);
+         colours[UBENCH_GREEN], colours[UBENCH_RESET], ran_benchmarks);
+  printf("%s[  PASSED  ]%s %" UBENCH_PRIu64 " benchmarks.\n", colours[UBENCH_GREEN],
+         colours[UBENCH_RESET], ran_benchmarks - failed);
 
   if (0 != failed) {
     printf("%s[  FAILED  ]%s %" UBENCH_PRIu64 " benchmarks, listed below:\n",
-           colours[RED], colours[RESET], failed);
+           colours[UBENCH_RED], colours[UBENCH_RESET], failed);
     for (index = 0; index < failed_benchmarks_length; index++) {
-      printf("%s[  FAILED  ]%s %s\n", colours[RED], colours[RESET],
+      printf("%s[  FAILED  ]%s %s\n", colours[UBENCH_RED], colours[UBENCH_RESET],
              ubench_state.benchmarks[failed_benchmarks[index]].name);
     }
   }
@@ -700,7 +733,7 @@ UBENCH_C_FUNC UBENCH_NOINLINE void ubench_do_nothing(void *const);
 #define UBENCH_DECLARE_DO_NOTHING()                                            \
   void ubench_do_nothing(void *ptr) {                                          \
     _Pragma("clang diagnostic push")                                           \
-        _Pragma("clang diagnostic ignored \"-Wlanguage-extension-token\"");    \
+        _Pragma("clang diagnostic ignoUBENCH_RED \"-Wlanguage-extension-token\"");    \
     asm volatile("" : : "r,m"(ptr) : "memory");                                \
     _Pragma("clang diagnostic pop");                                           \
   }
@@ -743,4 +776,4 @@ UBENCH_C_FUNC UBENCH_NOINLINE void ubench_do_nothing(void *const);
     return ubench_main(argc, argv);                                            \
   }
 
-#endif /* SHEREDOM_UBENCH_H_INCLUDED */
+#endif /* SHEUBENCH_REDOM_UBENCH_H_INCLUDED */
