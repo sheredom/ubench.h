@@ -222,7 +222,7 @@ enum ubench_colours_enum
   UBENCH_RED
 };
 
-static const char ** ubench_make_colours()
+inline const char ** ubench_make_colours()
 {
   static const char *colours_on[] = {"\033[0m", "\033[32m", "\033[31m"};
   static const char *colours_off[] = {"", "", ""};
