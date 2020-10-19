@@ -269,6 +269,10 @@ static UBENCH_INLINE ubench_int64_t ubench_ns(void) {
 #endif
 }
 
+/*dbj: added */ 
+#ifdef __cplusplus
+extern "C" { 
+#endif
 typedef void (*ubench_benchmark_t)(ubench_int64_t *const, const ubench_int64_t);
 
 struct ubench_benchmark_state_s {
@@ -285,6 +289,12 @@ struct ubench_state_s {
 
 /* extern to the global state ubench needs to execute */
 UBENCH_EXTERN struct ubench_state_s ubench_state;
+
+/*dbj: added */ 
+#ifdef __cplusplus
+} 
+#endif
+
 
 #if defined(_MSC_VER)
 #define UBENCH_WEAK __forceinline
@@ -393,6 +403,11 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
     UBENCH_SNPRINTF(name, name_size, "%s", name_part);                         \
   }                                                                            \
   void ubench_run_##FIXTURE##_##NAME(struct FIXTURE *ubench_fixture)
+
+// dbj
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 UBENCH_WEAK
 int ubench_should_filter(const char *filter, const char *benchmark);
@@ -725,6 +740,11 @@ cleanup:
 
   return UBENCH_CAST(int, failed);
 }
+
+// dbj
+#ifdef __cplusplus
+} 
+#endif
 
 UBENCH_C_FUNC UBENCH_NOINLINE void ubench_do_nothing(void *const);
 
