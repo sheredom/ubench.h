@@ -1,7 +1,8 @@
 # ⏱️ ubench.h
 
+[![Actions Status](https://github.com/sheredom/ubench.h/workflows/CMake/badge.svg)](https://github.com/sheredom/ubench.h/actions)
 [![Build status](https://ci.appveyor.com/api/projects/status/8x6h7ji9wpmh3rdd?svg=true)](https://ci.appveyor.com/project/sheredom/ubench-h)
-[![Build Status](https://travis-ci.org/sheredom/ubench.h.svg)](https://travis-ci.org/sheredom/ubench.h)
+[![Sponsor](https://img.shields.io/badge/💜-sponsor-blueviolet)](https://github.com/sponsors/sheredom)
 
 A simple one header solution to benchmarking for C/C++.
 

@@ -49,6 +49,12 @@
 #pragma warning(push, 1)
 #endif
 
+#if defined(__cplusplus)
+#define UBENCH_C_FUNC extern "C"
+#else
+#define UBENCH_C_FUNC
+#endif
+
 #if defined(_MSC_VER)
 typedef __int64 ubench_int64_t;
 typedef unsigned __int64 ubench_uint64_t;
@@ -69,20 +75,20 @@ typedef uint64_t ubench_uint64_t;
 #endif
 
 #if defined(_MSC_VER)
-#if defined(_M_IX86)
-#define _X86_
-#endif
+typedef union {
+  struct {
+    unsigned long LowPart;
+    long  HighPart;
+  } DUMMYSTRUCTNAME;
+  struct {
+    unsigned long LowPart;
+    long  HighPart;
+  } u;
+  ubench_int64_t QuadPart;
+} ubench_large_integer;
 
-#if defined(_M_AMD64)
-#define _AMD64_
-#endif
-
-#pragma warning(push, 1)
-#include <windef.h>
-#include <winbase.h>
-#include <intrin.h>
-#pragma warning(pop)
-
+UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceCounter(ubench_large_integer *);
+UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(ubench_large_integer *);
 #elif defined(__linux__)
 
 /*
@@ -182,8 +188,8 @@ typedef uint64_t ubench_uint64_t;
 #define UBENCH_EXTERN extern "C"
 #define UBENCH_NULL NULL
 #else
-#define UBENCH_CAST(type, x) ((type)x)
-#define UBENCH_PTR_CAST(type, x) ((type)x)
+#define UBENCH_CAST(type, x) ((type)(x))
+#define UBENCH_PTR_CAST(type, x) ((type)(x))
 #define UBENCH_EXTERN extern
 #define UBENCH_NULL 0
 #endif
@@ -206,8 +212,8 @@ typedef uint64_t ubench_uint64_t;
 
 static UBENCH_INLINE ubench_int64_t ubench_ns(void) {
 #ifdef _MSC_VER
-  LARGE_INTEGER counter;
-  LARGE_INTEGER frequency;
+  ubench_large_integer counter;
+  ubench_large_integer frequency;
   QueryPerformanceCounter(&counter);
   QueryPerformanceFrequency(&frequency);
   return UBENCH_CAST(ubench_int64_t,
@@ -590,13 +596,13 @@ int ubench_main(int argc, const char *const argv[]) {
         deviation += v * v;
       }
 
-      deviation = sqrt(deviation / iterations);
+      deviation = sqrt(deviation / UBENCH_CAST(double, iterations));
 
       // Confidence is the 99% confidence index - whose magic value is 2.576.
       confidence = 2.576 * deviation / sqrt(UBENCH_CAST(double, iterations));
-      confidence = (confidence / avg_ns) * 100;
+      confidence = (confidence / UBENCH_CAST(double, avg_ns)) * 100.0;
 
-      deviation = (deviation / avg_ns) * 100;
+      deviation = (deviation / UBENCH_CAST(double, avg_ns)) * 100.0;
 
       // If we've found a more confident solution, use that.
       result = confidence > ubench_state.confidence;
