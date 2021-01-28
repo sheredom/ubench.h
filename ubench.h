@@ -55,7 +55,13 @@
 #define UBENCH_C_FUNC
 #endif
 
-#if defined(_MSC_VER)
+#if defined(__cplusplus)
+#define UBENCH_NULL NULL
+#else
+#define UBENCH_NULL 0
+#endif
+
+#if defined(_MSC_VER) && (_MSC_VER < 1920)
 typedef __int64 ubench_int64_t;
 typedef unsigned __int64 ubench_uint64_t;
 #else
@@ -133,9 +139,17 @@ UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(uben
 #define UBENCH_NOTHROW
 #endif
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && (_MSC_VER < 1920)
 #define UBENCH_PRId64 "I64d"
 #define UBENCH_PRIu64 "I64u"
+#else
+#include <inttypes.h>
+
+#define UBENCH_PRId64 PRId64
+#define UBENCH_PRIu64 PRIu64
+#endif
+
+#if defined(_MSC_VER)
 #define UBENCH_INLINE __forceinline
 #define UBENCH_NOINLINE __declspec(noinline)
 
@@ -145,13 +159,25 @@ UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(uben
 #define UBENCH_SYMBOL_PREFIX "_"
 #endif
 
+#if defined(__clang__)
+#define UBENCH_INITIALIZER_BEGIN_DISABLE_WARNINGS                              \
+  _Pragma("clang diagnostic push")                                             \
+      _Pragma("clang diagnostic ignored \"-Wmissing-variable-declarations\"")
+
+#define UBENCH_INITIALIZER_END_DISABLE_WARNINGS _Pragma("clang diagnostic pop")
+#else
+#define UBENCH_INITIALIZER_BEGIN_DISABLE_WARNINGS
+#define UBENCH_INITIALIZER_END_DISABLE_WARNINGS
+#endif
+
 #pragma section(".CRT$XCU", read)
 #define UBENCH_INITIALIZER(f)                                                  \
   static void __cdecl f(void);                                                 \
-  __pragma(comment(linker, "/include:" UBENCH_SYMBOL_PREFIX #f "_"));          \
-  UBENCH_C_FUNC __declspec(allocate(".CRT$XCU")) void(__cdecl * f##_)(void) =  \
-      f;                                                                       \
-  static void __cdecl f(void)
+  UBENCH_INITIALIZER_BEGIN_DISABLE_WARNINGS __pragma(                          \
+      comment(linker, "/include:" UBENCH_SYMBOL_PREFIX #f "_"))                \
+      UBENCH_C_FUNC __declspec(allocate(".CRT$XCU")) void(__cdecl *            \
+                                                          f##_)(void) = f;     \
+  UBENCH_INITIALIZER_END_DISABLE_WARNINGS static void __cdecl f(void)
 #else
 #if defined(__linux__)
 #if defined(__clang__)
@@ -170,10 +196,6 @@ UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(uben
 #endif
 #endif
 
-#include <inttypes.h>
-
-#define UBENCH_PRId64 PRId64
-#define UBENCH_PRIu64 PRIu64
 #define UBENCH_INLINE inline
 #define UBENCH_NOINLINE __attribute__((noinline))
 
@@ -186,12 +208,10 @@ UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(uben
 #define UBENCH_CAST(type, x) static_cast<type>(x)
 #define UBENCH_PTR_CAST(type, x) reinterpret_cast<type>(x)
 #define UBENCH_EXTERN extern "C"
-#define UBENCH_NULL NULL
 #else
 #define UBENCH_CAST(type, x) ((type)(x))
 #define UBENCH_PTR_CAST(type, x) ((type)(x))
 #define UBENCH_EXTERN extern
-#define UBENCH_NULL 0
 #endif
 
 #ifdef _MSC_VER
@@ -251,12 +271,6 @@ struct ubench_state_s {
 UBENCH_EXTERN struct ubench_state_s ubench_state;
 
 #if defined(_MSC_VER)
-#define UBENCH_WEAK __forceinline
-#else
-#define UBENCH_WEAK __attribute__((weak))
-#endif
-
-#if defined(_MSC_VER)
 #define UBENCH_UNUSED
 #else
 #define UBENCH_UNUSED __attribute__((unused))
@@ -276,18 +290,20 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 #pragma clang diagnostic pop
 #endif
 
-#ifdef _MSC_VER
-#define UBENCH_SNPRINTF(BUFFER, N, ...) _snprintf_s(BUFFER, N, N, __VA_ARGS__)
-#else
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wvariadic-macros"
 #pragma clang diagnostic ignored "-Wc++98-compat-pedantic"
 #endif
+
+#ifdef _MSC_VER
+#define UBENCH_SNPRINTF(BUFFER, N, ...) _snprintf_s(BUFFER, N, N, __VA_ARGS__)
+#else
 #define UBENCH_SNPRINTF(...) snprintf(__VA_ARGS__)
+#endif
+
 #ifdef __clang__
 #pragma clang diagnostic pop
-#endif
 #endif
 
 #define UBENCH(SET, NAME)                                                      \
@@ -358,10 +374,9 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
   }                                                                            \
   void ubench_run_##FIXTURE##_##NAME(struct FIXTURE *ubench_fixture)
 
-UBENCH_WEAK
-int ubench_should_filter(const char *filter, const char *benchmark);
-UBENCH_WEAK int ubench_should_filter(const char *filter,
-                                     const char *benchmark) {
+static UBENCH_INLINE int ubench_should_filter(const char *filter,
+                                              const char *benchmark);
+int ubench_should_filter(const char *filter, const char *benchmark) {
   if (filter) {
     const char *filter_cur = filter;
     const char *benchmark_cur = benchmark;
@@ -449,14 +464,14 @@ static UBENCH_INLINE FILE *ubench_fopen(const char *filename,
   if (0 == fopen_s(&file, filename, mode)) {
     return file;
   } else {
-    return 0;
+    return UBENCH_NULL;
   }
 #else
   return fopen(filename, mode);
 #endif
 }
 
-UBENCH_WEAK int ubench_main(int argc, const char *const argv[]);
+static UBENCH_INLINE int ubench_main(int argc, const char *const argv[]);
 int ubench_main(int argc, const char *const argv[]) {
   ubench_uint64_t failed = 0;
   size_t index = 0;
@@ -567,7 +582,7 @@ int ubench_main(int argc, const char *const argv[]) {
     printf("%s[ RUN      ]%s %s\n", colours[GREEN], colours[RESET],
            ubench_state.benchmarks[index].name);
 
-    // Time once to work out the base number of iterations to use.
+    /* Time once to work out the base number of iterations to use. */
     ubench_state.benchmarks[index].func(ns, 1);
 
     iterations = (100 * 1000 * 1000) / ns[0];
@@ -598,16 +613,16 @@ int ubench_main(int argc, const char *const argv[]) {
 
       deviation = sqrt(deviation / UBENCH_CAST(double, iterations));
 
-      // Confidence is the 99% confidence index - whose magic value is 2.576.
+      /* Confidence is the 99% confidence index - whose magic value is 2.576. */
       confidence = 2.576 * deviation / sqrt(UBENCH_CAST(double, iterations));
       confidence = (confidence / UBENCH_CAST(double, avg_ns)) * 100.0;
 
       deviation = (deviation / UBENCH_CAST(double, avg_ns)) * 100.0;
 
-      // If we've found a more confident solution, use that.
+      /* If we've found a more confident solution, use that. */
       result = confidence > ubench_state.confidence;
 
-      // If the deviation beats our previous best, record it.
+      /* If the deviation beats our previous best, record it. */
       if (confidence < best_confidence) {
         best_avg_ns = avg_ns;
         best_deviation = deviation;
@@ -649,8 +664,8 @@ int ubench_main(int argc, const char *const argv[]) {
           break;
         }
 
-        // If the average is greater than a million, we reduce it and change the
-        // unit we report.
+        /* If the average is greater than a million, we reduce it and change the
+        unit we report. */
         best_avg_ns /= 1000;
 
         switch (mndex) {
@@ -702,19 +717,21 @@ UBENCH_C_FUNC UBENCH_NOINLINE void ubench_do_nothing(void *const);
 
 #define UBENCH_DO_NOTHING(x) ubench_do_nothing(x)
 
-#if defined(__clang__)
+#if defined(_MSC_VER)
+UBENCH_C_FUNC void _ReadWriteBarrier(void);
+
+#define UBENCH_DECLARE_DO_NOTHING()                                            \
+  void ubench_do_nothing(void *ptr) {                                          \
+    (void)ptr;                                                                 \
+    _ReadWriteBarrier();                                                       \
+  }
+#elif defined(__clang__)
 #define UBENCH_DECLARE_DO_NOTHING()                                            \
   void ubench_do_nothing(void *ptr) {                                          \
     _Pragma("clang diagnostic push")                                           \
         _Pragma("clang diagnostic ignored \"-Wlanguage-extension-token\"");    \
     asm volatile("" : : "r,m"(ptr) : "memory");                                \
     _Pragma("clang diagnostic pop");                                           \
-  }
-#elif defined(_MSC_VER)
-#define UBENCH_DECLARE_DO_NOTHING()                                            \
-  void ubench_do_nothing(void *ptr) {                                          \
-    (void)ptr;                                                                 \
-    _ReadWriteBarrier();                                                       \
   }
 #else
 #define UBENCH_DECLARE_DO_NOTHING()                                            \
