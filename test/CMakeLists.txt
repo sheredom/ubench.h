@@ -45,11 +45,11 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
     COMPILE_FLAGS "-Wall -Wextra -Werror -std=gnu89"
   )
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
-  if (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+  if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
     set_source_files_properties(main.c test.c PROPERTIES
       COMPILE_FLAGS "/Wall /WX /wd4514 /wd5045"
     )
-  elseif (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "GNU")
+  else()
     set_source_files_properties(main.c test.c PROPERTIES
       COMPILE_FLAGS "-Wall -Wextra -Weverything -Werror -std=gnu89"
     )
@@ -67,11 +67,11 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     COMPILE_FLAGS "-Wall -Wextra -Werror -std=gnu++98"
   )
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  if (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+  if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
     set_source_files_properties(test.cpp PROPERTIES
       COMPILE_FLAGS "/Wall /WX /wd4514 /wd5045"
     )
-  elseif (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "GNU")
+  else()
     set_source_files_properties(test.cpp PROPERTIES
       COMPILE_FLAGS "-Wall -Wextra -Weverything -Werror -std=gnu++98"
     )
@@ -89,11 +89,11 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     COMPILE_FLAGS "-Wall -Wextra -Werror -std=c++11"
   )
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  if (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+  if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
     set_source_files_properties(test11.cpp PROPERTIES
       COMPILE_FLAGS "/Wall /WX /wd4514 /wd5045"
     )
-  elseif (CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "GNU")
+  else()
     set_source_files_properties(test11.cpp PROPERTIES
       COMPILE_FLAGS "-Wall -Wextra -Weverything -Werror -std=c++11 -Wno-c++98-compat"
     )
