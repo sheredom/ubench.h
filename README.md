@@ -10,9 +10,9 @@ A simple one header solution to benchmarking for C/C++.
 
 Just `#include "ubench.h"` in your code!
 
-The current supported compilers are gcc, clang and msvc.
-
 The current supported platforms are Linux, macOS and Windows.
+
+The current supported compilers are gcc, clang, MSVC's cl.exe, and clang-cl.exe.
 
 ## Command Line Options
 
