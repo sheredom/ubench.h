@@ -41,6 +41,20 @@ UBENCH(cpp, do_nothing) {
   UBENCH_DO_NOTHING(b);
 }
 
+UBENCH_EX(cpp, ex)
+{
+  int b[1024];
+  int i;
+  int sum;
+  memset(b, 0x0, sizeof(b));
+  
+  UBENCH_BEGIN
+    sum = 0;
+    for(i = 0; i < 1024; ++i)
+      sum += i;
+  UBENCH_END
+}
+
 struct cpp_my_fixture {
   char *data;
 };
@@ -61,4 +75,15 @@ UBENCH_F(cpp_my_fixture, strchr) {
 
 UBENCH_F(cpp_my_fixture, strrchr) {
   UBENCH_DO_NOTHING(strrchr(ubench_fixture->data, 'f'));
+}
+
+UBENCH_EX_F(cpp_my_fixture, strrchr_ex)
+{
+  char data[128*4];
+  memcpy(data, ubench_fixture->data, sizeof(data));
+  data[sizeof(data)-1] = '\0';
+  
+  UBENCH_BEGIN
+    UBENCH_DO_NOTHING(strchr(data, 'f'));
+  UBENCH_END
 }
