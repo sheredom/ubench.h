@@ -307,7 +307,7 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 #endif
 
 #define UBENCH_BEGIN                                                             \
-    ubench_int64_t ubench_sample_idx = 0;                                        \
+    ubench_int64_t ubench_sample_idx;                                            \
     for (ubench_sample_idx = 0; ubench_sample_idx < size; ubench_sample_idx++) { \
       ns[ubench_sample_idx] = ubench_ns();
 
@@ -341,7 +341,7 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
   static void ubench_run_##SET##_##NAME(void);                                 \
   static void ubench_##SET##_##NAME(ubench_int64_t *const ns,                  \
                                     const ubench_int64_t size) {               \
-    ubench_int64_t i = 0;                                                      \
+    ubench_int64_t i;                                                          \
     for (i = 0; i < size; i++) {                                               \
       ns[i] = ubench_ns();                                                     \
       ubench_run_##SET##_##NAME();                                             \
@@ -412,7 +412,7 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
   static void ubench_run_##FIXTURE##_##NAME(struct FIXTURE *);                 \
   static void ubench_f_##FIXTURE##_##NAME(ubench_int64_t *const ns,            \
                                           const ubench_int64_t size) {         \
-    ubench_int64_t i = 0;                                                      \
+    ubench_int64_t i;                                                          \
     struct FIXTURE fixture;                                                    \
     memset(&fixture, 0, sizeof(fixture));                                      \
     ubench_f_setup_##FIXTURE(&fixture);                                        \
