@@ -53,11 +53,12 @@ UBENCH_EX(cpp11, ex)
   int sum;
   memset(b, 0x0, sizeof(b));
   
-  UBENCH_BEGIN
+  UBENCH_KEEP_RUNNING()
+  {
     sum = 0;
     for(i = 0; i < 1024; ++i)
       sum += i;
-  UBENCH_END
+  }
 }
 
 struct cpp11_my_fixture {
@@ -88,7 +89,8 @@ UBENCH_EX_F(cpp11_my_fixture, strchr_ex)
   memcpy(data, ubench_fixture->data, sizeof(data));
   data[sizeof(data)-1] = '\0';
   
-  UBENCH_BEGIN
+  UBENCH_KEEP_RUNNING()
+  {
     UBENCH_DO_NOTHING(strchr(data, 'f'));
-  UBENCH_END
+  }
 }
