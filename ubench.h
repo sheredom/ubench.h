@@ -312,7 +312,7 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 #pragma clang diagnostic pop
 #endif
 
-static int ubench_keep_running(struct ubench_run_state_s* ubs)
+UBENCH_UNUSED static int ubench_keep_running(struct ubench_run_state_s* ubs)
 {
   ubench_int64_t curr_sample = ubs->sample++;
   ubs->ns[curr_sample] = ubench_ns();
