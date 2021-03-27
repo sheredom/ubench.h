@@ -363,7 +363,6 @@ UBENCH_UNUSED static int ubench_keep_running(struct ubench_run_state_s* ubs)
   static void ubench_run_ex_##FIXTURE##_##NAME(struct FIXTURE *,               \
                                             struct ubench_run_state_s*);       \
   static void ubench_f_##FIXTURE##_##NAME(struct ubench_run_state_s* ubench_run_state) { \
-    ubench_int64_t i;                                                          \
     struct FIXTURE fixture;                                                    \
     memset(&fixture, 0, sizeof(fixture));                                      \
     ubench_f_setup_##FIXTURE(&fixture);                                        \
