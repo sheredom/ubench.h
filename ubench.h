@@ -612,7 +612,7 @@ int ubench_main(int argc, const char *const argv[]) {
     /* Time once to work out the base number of iterations to use. */
     ubench_state.benchmarks[index].func(&ubs);
 
-    iterations = (100 * 1000 * 1000) / (ns[1] - ns[0]);
+    iterations = (100 * 1000 * 1000) / (ns[1] - ns[0] + 1);
     iterations = iterations < min_iterations ? min_iterations : iterations;
     iterations = iterations > max_iterations ? max_iterations : iterations;
 
