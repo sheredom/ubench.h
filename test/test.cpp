@@ -63,7 +63,7 @@ struct cpp_my_fixture {
 UBENCH_F_SETUP(cpp_my_fixture) {
   const int size = 128 * 1024 * 1024;
   ubench_fixture->data = static_cast<char *>(malloc(size));
-  memset(ubench_fixture->data, ' ', size - 2);
+  memset(ubench_fixture->data, ' ', size - 1);
   ubench_fixture->data[size - 1] = '\0';
   ubench_fixture->data[size / 2] = 'f';
 }
