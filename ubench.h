@@ -52,7 +52,7 @@
    0 emitted from microsofts own headers.
    See: https://developercommunity.visualstudio.com/t/issue-in-corecrth-header-results-in-an-undefined-m/433021
 */
-#pragma warning(disable : 4711)
+#pragma warning(disable : 4668)
 #pragma warning(push, 1)
 #endif
 
