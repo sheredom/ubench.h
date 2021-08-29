@@ -46,6 +46,13 @@
    TODO: add a UBENCH_NOINLINE onto the macro generated functions to fix this.
 */
 #pragma warning(disable : 4711)
+
+/*
+   Disable warning about replacing undefined preprocessor macro '__cplusplus' with
+   0 emitted from microsofts own headers.
+   See: https://developercommunity.visualstudio.com/t/issue-in-corecrth-header-results-in-an-undefined-m/433021
+*/
+#pragma warning(disable : 4711)
 #pragma warning(push, 1)
 #endif
 
@@ -612,7 +619,7 @@ int ubench_main(int argc, const char *const argv[]) {
     /* Time once to work out the base number of iterations to use. */
     ubench_state.benchmarks[index].func(&ubs);
 
-    iterations = (100 * 1000 * 1000) / (ns[1] - ns[0] + 1);
+    iterations = (100 * 1000 * 1000) / ((ns[1] <= ns[0]) ? 1 : ns[1] - ns[0]);
     iterations = iterations < min_iterations ? min_iterations : iterations;
     iterations = iterations > max_iterations ? max_iterations : iterations;
 
