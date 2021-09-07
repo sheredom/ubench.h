@@ -60,6 +60,7 @@
     creating the section will interfere with C++ dynamic initialization and may lead to undefined behavior
 */
 #pragma warning(disable : 5247)
+#pragma warning(disable : 5248)
 
 #pragma warning(push, 1)
 #endif
