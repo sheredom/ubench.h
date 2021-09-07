@@ -107,6 +107,42 @@ The UBENCH macro takes two parameters - the first being the set that the
 benchmark belongs to, the second being the name of the benchmark. This allows
 benchmarks to be grouped for convenience.
 
+## Define a Benchmark with setup
+
+In some cases it might be beneficial to setup your benchmark state locally in
+your benchmark.
+This can be done like so:
+
+```c
+#include "ubench.h"
+
+UBENCH_EX(foo, short_string) {
+  const char* short_string = alloc_test_string(16);
+
+  UBENCH_DO_BENCHMARK() {
+    to_test(short_string);
+  }
+
+  free(short_string);
+}
+
+UBENCH_EX(foo, long_string) {
+  const char* long_string = alloc_test_string(16 * 1024);
+
+  UBENCH_DO_BENCHMARK() {
+    to_test(long_string);
+  }
+
+  free(long_string);
+}
+```
+The benchmark will keep running and measuring within the {} after UBENCH_DO_BENCHMARK()
+so all code before and after that scope is only executed once.
+This might be the right thing to do in cases where you only want the setup in one benchmark.
+If you want some setup for en entire set a 'fixture' might be a better way to go, maybe
+you need to do some system-setup for each benchmark in a set.
+
+
 ## Define a Fixtured Benchmark
 
 Fixtures are a way to have some state that is initialized once and then used
@@ -145,6 +181,31 @@ UBENCH_F(foo, strrchr) {
 Note that fixtures are not guaranteed to be constructed only once - but they are
 guaranteed to not impede on the collection of accurate metrics for the running
 of your benchmark.
+
+It is also possible to use a fixture in combination with a benchmark with a setup
+as follows:
+
+```c
+UBENCH_EX_F(my_sys, short_string) {
+  const char* short_string = alloc_test_string(16);
+
+  UBENCH_DO_BENCHMARK() {
+    my_sys_work(ubench_fixture->sys, short_string));
+  }
+
+  free(short_string);
+}
+
+UBENCH_EX_F(my_sys, long_string) {
+  const char* long_string = alloc_test_string(16 * 1024);
+
+  UBENCH_DO_BENCHMARK() {
+    my_sys_work(ubench_fixture->sys, long_string));
+  }
+
+  free(long_string);
+}
+```
 
 ## Testing Macros
 

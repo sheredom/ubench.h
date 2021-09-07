@@ -319,15 +319,15 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 #pragma clang diagnostic pop
 #endif
 
-static UBENCH_INLINE int ubench_keep_running(struct ubench_run_state_s* ubs)
+static UBENCH_INLINE int ubench_do_benchmark(struct ubench_run_state_s* ubs)
 {
   ubench_int64_t curr_sample = ubs->sample++;
   ubs->ns[curr_sample] = ubench_ns();
   return curr_sample < ubs->size ? 1 : 0;
 }
 
-#define UBENCH_KEEP_RUNNING()                                                  \
-  while(ubench_keep_running(ubench_run_state) > 0)
+#define UBENCH_DO_BENCHMARK()                                                  \
+  while(ubench_do_benchmark(ubench_run_state) > 0)
 
 #define UBENCH_EX(SET, NAME)                                                   \
   UBENCH_EXTERN struct ubench_state_s ubench_state;                            \
@@ -351,7 +351,7 @@ static UBENCH_INLINE int ubench_keep_running(struct ubench_run_state_s* ubs)
 #define UBENCH(SET, NAME)                                                      \
   static void ubench_run_##SET##_##NAME(void);                                 \
   UBENCH_EX(SET, NAME) {                                                       \
-    UBENCH_KEEP_RUNNING() {                                                    \
+    UBENCH_DO_BENCHMARK() {                                                    \
       ubench_run_##SET##_##NAME();                                             \
     }                                                                          \
   }                                                                            \
@@ -396,7 +396,7 @@ static UBENCH_INLINE int ubench_keep_running(struct ubench_run_state_s* ubs)
 #define UBENCH_F(FIXTURE, NAME)                                                \
   static void ubench_run_##FIXTURE##_##NAME(struct FIXTURE *);                 \
   UBENCH_EX_F(FIXTURE, NAME) {                                                 \
-    UBENCH_KEEP_RUNNING() {                                                    \
+    UBENCH_DO_BENCHMARK() {                                                    \
        ubench_run_##FIXTURE##_##NAME(ubench_fixture);                          \
      }                                                                         \
   }                                                                            \

@@ -48,7 +48,7 @@ UBENCH_EX(cpp, ex)
   int sum;
   memset(b, 0x0, sizeof(b));
   
-  UBENCH_KEEP_RUNNING()
+  UBENCH_DO_BENCHMARK()
   {
     sum = 0;
     for(i = 0; i < 1024; ++i)
@@ -84,7 +84,7 @@ UBENCH_EX_F(cpp_my_fixture, strrchr_ex)
   memcpy(data, ubench_fixture->data, sizeof(data));
   data[sizeof(data)-1] = '\0';
   
-  UBENCH_KEEP_RUNNING()
+  UBENCH_DO_BENCHMARK()
   {
     UBENCH_DO_NOTHING(strchr(data, 'f'));
   }
