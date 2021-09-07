@@ -53,6 +53,14 @@
    See: https://developercommunity.visualstudio.com/t/issue-in-corecrth-header-results-in-an-undefined-m/433021
 */
 #pragma warning(disable : 4668)
+
+/*
+    Disabled warning about dangerous use of section.
+    section '.CRT$XCU' is reserved for C++ dynamic initialization. Manually 
+    creating the section will interfere with C++ dynamic initialization and may lead to undefined behavior
+*/
+#pragma warning(disable : 5247)
+
 #pragma warning(push, 1)
 #endif
 
