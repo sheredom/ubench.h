@@ -59,8 +59,12 @@
     section '.CRT$XCU' is reserved for C++ dynamic initialization. Manually 
     creating the section will interfere with C++ dynamic initialization and may lead to undefined behavior
 */
+#if defined(_MSC_FULL_VER)
+#if _MSC_FULL_VER >= 192930100 // this warning was introduced in Visual Studio 2019 version 16.11
 #pragma warning(disable : 5247)
 #pragma warning(disable : 5248)
+#endif
+#endif
 
 #pragma warning(push, 1)
 #endif
