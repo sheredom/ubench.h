@@ -46,6 +46,26 @@
    TODO: add a UBENCH_NOINLINE onto the macro generated functions to fix this.
 */
 #pragma warning(disable : 4711)
+
+/*
+   Disable warning about replacing undefined preprocessor macro '__cplusplus' with
+   0 emitted from microsofts own headers.
+   See: https://developercommunity.visualstudio.com/t/issue-in-corecrth-header-results-in-an-undefined-m/433021
+*/
+#pragma warning(disable : 4668)
+
+/*
+    Disabled warning about dangerous use of section.
+    section '.CRT$XCU' is reserved for C++ dynamic initialization. Manually 
+    creating the section will interfere with C++ dynamic initialization and may lead to undefined behavior
+*/
+#if defined(_MSC_FULL_VER)
+#if _MSC_FULL_VER >= 192930100 // this warning was introduced in Visual Studio 2019 version 16.11
+#pragma warning(disable : 5247)
+#pragma warning(disable : 5248)
+#endif
+#endif
+
 #pragma warning(push, 1)
 #endif
 
@@ -253,7 +273,13 @@ static UBENCH_INLINE ubench_int64_t ubench_ns(void) {
 #endif
 }
 
-typedef void (*ubench_benchmark_t)(ubench_int64_t *const, const ubench_int64_t);
+struct ubench_run_state_s {
+  ubench_int64_t* ns;
+  ubench_int64_t  size;
+  ubench_int64_t  sample;
+};
+
+typedef void (*ubench_benchmark_t)(struct ubench_run_state_s* ubs);
 
 struct ubench_benchmark_state_s {
   ubench_benchmark_t func;
@@ -306,18 +332,19 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 #pragma clang diagnostic pop
 #endif
 
-#define UBENCH(SET, NAME)                                                      \
+static UBENCH_INLINE int ubench_do_benchmark(struct ubench_run_state_s* ubs)
+{
+  ubench_int64_t curr_sample = ubs->sample++;
+  ubs->ns[curr_sample] = ubench_ns();
+  return curr_sample < ubs->size ? 1 : 0;
+}
+
+#define UBENCH_DO_BENCHMARK()                                                  \
+  while(ubench_do_benchmark(ubench_run_state) > 0)
+
+#define UBENCH_EX(SET, NAME)                                                   \
   UBENCH_EXTERN struct ubench_state_s ubench_state;                            \
-  static void ubench_run_##SET##_##NAME(void);                                 \
-  static void ubench_##SET##_##NAME(ubench_int64_t *const ns,                  \
-                                    const ubench_int64_t size) {               \
-    ubench_int64_t i = 0;                                                      \
-    for (i = 0; i < size; i++) {                                               \
-      ns[i] = ubench_ns();                                                     \
-      ubench_run_##SET##_##NAME();                                             \
-      ns[i] = ubench_ns() - ns[i];                                             \
-    }                                                                          \
-  }                                                                            \
+  static void ubench_##SET##_##NAME(struct ubench_run_state_s* ubs);           \
   UBENCH_INITIALIZER(ubench_register_##SET##_##NAME) {                         \
     const size_t index = ubench_state.benchmarks_length++;                     \
     const char *name_part = #SET "." #NAME;                                    \
@@ -332,6 +359,15 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
     ubench_state.benchmarks[index].name = name;                                \
     UBENCH_SNPRINTF(name, name_size, "%s", name_part);                         \
   }                                                                            \
+  void ubench_##SET##_##NAME(struct ubench_run_state_s* ubench_run_state)
+
+#define UBENCH(SET, NAME)                                                      \
+  static void ubench_run_##SET##_##NAME(void);                                 \
+  UBENCH_EX(SET, NAME) {                                                       \
+    UBENCH_DO_BENCHMARK() {                                                    \
+      ubench_run_##SET##_##NAME();                                             \
+    }                                                                          \
+  }                                                                            \
   void ubench_run_##SET##_##NAME(void)
 
 #define UBENCH_F_SETUP(FIXTURE)                                                \
@@ -340,22 +376,17 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 #define UBENCH_F_TEARDOWN(FIXTURE)                                             \
   static void ubench_f_teardown_##FIXTURE(struct FIXTURE *ubench_fixture)
 
-#define UBENCH_F(FIXTURE, NAME)                                                \
+#define UBENCH_EX_F(FIXTURE, NAME)                                             \
   UBENCH_EXTERN struct ubench_state_s ubench_state;                            \
   static void ubench_f_setup_##FIXTURE(struct FIXTURE *);                      \
   static void ubench_f_teardown_##FIXTURE(struct FIXTURE *);                   \
-  static void ubench_run_##FIXTURE##_##NAME(struct FIXTURE *);                 \
-  static void ubench_f_##FIXTURE##_##NAME(ubench_int64_t *const ns,            \
-                                          const ubench_int64_t size) {         \
-    ubench_int64_t i = 0;                                                      \
+  static void ubench_run_ex_##FIXTURE##_##NAME(struct FIXTURE *,               \
+                                            struct ubench_run_state_s*);       \
+  static void ubench_f_##FIXTURE##_##NAME(struct ubench_run_state_s* ubench_run_state) { \
     struct FIXTURE fixture;                                                    \
     memset(&fixture, 0, sizeof(fixture));                                      \
     ubench_f_setup_##FIXTURE(&fixture);                                        \
-    for (i = 0; i < size; i++) {                                               \
-      ns[i] = ubench_ns();                                                     \
-      ubench_run_##FIXTURE##_##NAME(&fixture);                                 \
-      ns[i] = ubench_ns() - ns[i];                                             \
-    }                                                                          \
+    ubench_run_ex_##FIXTURE##_##NAME(&fixture, ubench_run_state);              \
     ubench_f_teardown_##FIXTURE(&fixture);                                     \
   }                                                                            \
   UBENCH_INITIALIZER(ubench_register_##FIXTURE##_##NAME) {                     \
@@ -371,6 +402,16 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
     ubench_state.benchmarks[index].func = &ubench_f_##FIXTURE##_##NAME;        \
     ubench_state.benchmarks[index].name = name;                                \
     UBENCH_SNPRINTF(name, name_size, "%s", name_part);                         \
+  }                                                                            \
+  void ubench_run_ex_##FIXTURE##_##NAME(struct FIXTURE *ubench_fixture,        \
+                                        struct ubench_run_state_s* ubench_run_state)
+
+#define UBENCH_F(FIXTURE, NAME)                                                \
+  static void ubench_run_##FIXTURE##_##NAME(struct FIXTURE *);                 \
+  UBENCH_EX_F(FIXTURE, NAME) {                                                 \
+    UBENCH_DO_BENCHMARK() {                                                    \
+       ubench_run_##FIXTURE##_##NAME(ubench_fixture);                          \
+     }                                                                         \
   }                                                                            \
   void ubench_run_##FIXTURE##_##NAME(struct FIXTURE *ubench_fixture)
 
@@ -565,13 +606,15 @@ int ubench_main(int argc, const char *const argv[]) {
     ubench_int64_t best_avg_ns = 0;
     double best_deviation = 0;
     double best_confidence = 101.0;
+    struct ubench_run_state_s ubs;
 
 #define UBENCH_MIN_ITERATIONS 10
 #define UBENCH_MAX_ITERATIONS 500
     ubench_int64_t iterations = 10;
     const ubench_int64_t max_iterations = UBENCH_MAX_ITERATIONS;
     const ubench_int64_t min_iterations = UBENCH_MIN_ITERATIONS;
-    ubench_int64_t ns[UBENCH_MAX_ITERATIONS];
+    /* Add one extra timestamp slot, as we save times between runs and time after exiting the last one */
+    ubench_int64_t ns[UBENCH_MAX_ITERATIONS+1];
 #undef UBENCH_MAX_ITERATIONS
 #undef UBENCH_MIN_ITERATIONS
 
@@ -582,10 +625,14 @@ int ubench_main(int argc, const char *const argv[]) {
     printf("%s[ RUN      ]%s %s\n", colours[GREEN], colours[RESET],
            ubench_state.benchmarks[index].name);
 
-    /* Time once to work out the base number of iterations to use. */
-    ubench_state.benchmarks[index].func(ns, 1);
+    ubs.ns     = ns;
+    ubs.size   = 1;
+    ubs.sample = 0;
 
-    iterations = (100 * 1000 * 1000) / ns[0];
+    /* Time once to work out the base number of iterations to use. */
+    ubench_state.benchmarks[index].func(&ubs);
+
+    iterations = (100 * 1000 * 1000) / ((ns[1] <= ns[0]) ? 1 : ns[1] - ns[0]);
     iterations = iterations < min_iterations ? min_iterations : iterations;
     iterations = iterations > max_iterations ? max_iterations : iterations;
 
@@ -598,7 +645,14 @@ int ubench_main(int argc, const char *const argv[]) {
       iterations = iterations * (UBENCH_CAST(ubench_int64_t, mndex) + 1);
       iterations = iterations > max_iterations ? max_iterations : iterations;
 
-      ubench_state.benchmarks[index].func(ns, iterations);
+      ubs.sample = 0;
+      ubs.size   = iterations;
+      ubench_state.benchmarks[index].func(&ubs);
+
+      /* Calculate benchmark run-times */
+      for (kndex = 0; kndex < iterations; kndex++) {
+        ns[kndex] = ns[kndex + 1] - ns[kndex];
+      }
 
       for (kndex = 0; kndex < iterations; kndex++) {
         avg_ns += ns[kndex];
