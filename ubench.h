@@ -48,22 +48,17 @@
 #pragma warning(disable : 4711)
 
 /*
-   Disable warning about replacing undefined preprocessor macro '__cplusplus' with
-   0 emitted from microsofts own headers.
-   See: https://developercommunity.visualstudio.com/t/issue-in-corecrth-header-results-in-an-undefined-m/433021
+   Disable warning about replacing undefined preprocessor macro '__cplusplus'
+   with 0 emitted from microsofts own headers. See:
+   https://developercommunity.visualstudio.com/t/issue-in-corecrth-header-results-in-an-undefined-m/433021
 */
 #pragma warning(disable : 4668)
 
+#if _MSC_VER > 1930
 /*
-    Disabled warning about dangerous use of section.
-    section '.CRT$XCU' is reserved for C++ dynamic initialization. Manually 
-    creating the section will interfere with C++ dynamic initialization and may lead to undefined behavior
+  Disable warning about 'const' variable is not used.
 */
-#if defined(_MSC_FULL_VER)
-#if _MSC_FULL_VER >= 192930100 // this warning was introduced in Visual Studio 2019 version 16.11
-#pragma warning(disable : 5247)
-#pragma warning(disable : 5248)
-#endif
+#pragma warning(disable : 5264)
 #endif
 
 #pragma warning(push, 1)
@@ -104,17 +99,19 @@ typedef uint64_t ubench_uint64_t;
 typedef union {
   struct {
     unsigned long LowPart;
-    long  HighPart;
+    long HighPart;
   } DUMMYSTRUCTNAME;
   struct {
     unsigned long LowPart;
-    long  HighPart;
+    long HighPart;
   } u;
   ubench_int64_t QuadPart;
 } ubench_large_integer;
 
-UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceCounter(ubench_large_integer *);
-UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(ubench_large_integer *);
+UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceCounter(
+    ubench_large_integer *);
+UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(
+    ubench_large_integer *);
 #elif defined(__linux__)
 
 /*
@@ -169,9 +166,42 @@ UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(uben
 #define UBENCH_PRIu64 PRIu64
 #endif
 
-#if defined(_MSC_VER)
+#if defined(__cplusplus)
+#define UBENCH_INLINE inline
+#elif defined(_MSC_VER)
 #define UBENCH_INLINE __forceinline
+#else
+#define UBENCH_INLINE inline
+#endif
+
+#if defined(_MSC_VER)
 #define UBENCH_NOINLINE __declspec(noinline)
+#else
+#define UBENCH_NOINLINE __attribute__((noinline))
+#endif
+
+#if defined(__cplusplus)
+
+#if defined(__clang__)
+#define UBENCH_INITIALIZER_BEGIN_DISABLE_WARNINGS                              \
+  _Pragma("clang diagnostic push")                                             \
+      _Pragma("clang diagnostic ignored \"-Wglobal-constructors\"")
+
+#define UBENCH_INITIALIZER_END_DISABLE_WARNINGS _Pragma("clang diagnostic pop")
+#else
+#define UBENCH_INITIALIZER_BEGIN_DISABLE_WARNINGS
+#define UBENCH_INITIALIZER_END_DISABLE_WARNINGS
+#endif
+
+#define UBENCH_INITIALIZER(f)                                                  \
+  struct f##_cpp_struct {                                                      \
+    f##_cpp_struct();                                                          \
+  };                                                                           \
+  UBENCH_INITIALIZER_BEGIN_DISABLE_WARNINGS static f##_cpp_struct              \
+      f##_cpp_global UBENCH_INITIALIZER_END_DISABLE_WARNINGS;                  \
+  f##_cpp_struct::f##_cpp_struct()
+
+#elif defined(_MSC_VER)
 
 #if defined(_WIN64)
 #define UBENCH_SYMBOL_PREFIX
@@ -215,9 +245,6 @@ UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(uben
 #endif
 #endif
 #endif
-
-#define UBENCH_INLINE inline
-#define UBENCH_NOINLINE __attribute__((noinline))
 
 #define UBENCH_INITIALIZER(f)                                                  \
   static void f(void) __attribute__((constructor));                            \
@@ -274,12 +301,12 @@ static UBENCH_INLINE ubench_int64_t ubench_ns(void) {
 }
 
 struct ubench_run_state_s {
-  ubench_int64_t* ns;
-  ubench_int64_t  size;
-  ubench_int64_t  sample;
+  ubench_int64_t *ns;
+  ubench_int64_t size;
+  ubench_int64_t sample;
 };
 
-typedef void (*ubench_benchmark_t)(struct ubench_run_state_s* ubs);
+typedef void (*ubench_benchmark_t)(struct ubench_run_state_s *ubs);
 
 struct ubench_benchmark_state_s {
   ubench_benchmark_t func;
@@ -332,19 +359,17 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 #pragma clang diagnostic pop
 #endif
 
-static UBENCH_INLINE int ubench_do_benchmark(struct ubench_run_state_s* ubs)
-{
+static UBENCH_INLINE int ubench_do_benchmark(struct ubench_run_state_s *ubs) {
   ubench_int64_t curr_sample = ubs->sample++;
   ubs->ns[curr_sample] = ubench_ns();
   return curr_sample < ubs->size ? 1 : 0;
 }
 
-#define UBENCH_DO_BENCHMARK()                                                  \
-  while(ubench_do_benchmark(ubench_run_state) > 0)
+#define UBENCH_DO_BENCHMARK() while (ubench_do_benchmark(ubench_run_state) > 0)
 
 #define UBENCH_EX(SET, NAME)                                                   \
   UBENCH_EXTERN struct ubench_state_s ubench_state;                            \
-  static void ubench_##SET##_##NAME(struct ubench_run_state_s* ubs);           \
+  static void ubench_##SET##_##NAME(struct ubench_run_state_s *ubs);           \
   UBENCH_INITIALIZER(ubench_register_##SET##_##NAME) {                         \
     const size_t index = ubench_state.benchmarks_length++;                     \
     const char *name_part = #SET "." #NAME;                                    \
@@ -359,14 +384,12 @@ static UBENCH_INLINE int ubench_do_benchmark(struct ubench_run_state_s* ubs)
     ubench_state.benchmarks[index].name = name;                                \
     UBENCH_SNPRINTF(name, name_size, "%s", name_part);                         \
   }                                                                            \
-  void ubench_##SET##_##NAME(struct ubench_run_state_s* ubench_run_state)
+  void ubench_##SET##_##NAME(struct ubench_run_state_s *ubench_run_state)
 
 #define UBENCH(SET, NAME)                                                      \
   static void ubench_run_##SET##_##NAME(void);                                 \
   UBENCH_EX(SET, NAME) {                                                       \
-    UBENCH_DO_BENCHMARK() {                                                    \
-      ubench_run_##SET##_##NAME();                                             \
-    }                                                                          \
+    UBENCH_DO_BENCHMARK() { ubench_run_##SET##_##NAME(); }                     \
   }                                                                            \
   void ubench_run_##SET##_##NAME(void)
 
@@ -381,8 +404,9 @@ static UBENCH_INLINE int ubench_do_benchmark(struct ubench_run_state_s* ubs)
   static void ubench_f_setup_##FIXTURE(struct FIXTURE *);                      \
   static void ubench_f_teardown_##FIXTURE(struct FIXTURE *);                   \
   static void ubench_run_ex_##FIXTURE##_##NAME(struct FIXTURE *,               \
-                                            struct ubench_run_state_s*);       \
-  static void ubench_f_##FIXTURE##_##NAME(struct ubench_run_state_s* ubench_run_state) { \
+                                               struct ubench_run_state_s *);   \
+  static void ubench_f_##FIXTURE##_##NAME(                                     \
+      struct ubench_run_state_s *ubench_run_state) {                           \
     struct FIXTURE fixture;                                                    \
     memset(&fixture, 0, sizeof(fixture));                                      \
     ubench_f_setup_##FIXTURE(&fixture);                                        \
@@ -403,15 +427,14 @@ static UBENCH_INLINE int ubench_do_benchmark(struct ubench_run_state_s* ubs)
     ubench_state.benchmarks[index].name = name;                                \
     UBENCH_SNPRINTF(name, name_size, "%s", name_part);                         \
   }                                                                            \
-  void ubench_run_ex_##FIXTURE##_##NAME(struct FIXTURE *ubench_fixture,        \
-                                        struct ubench_run_state_s* ubench_run_state)
+  void ubench_run_ex_##FIXTURE##_##NAME(                                       \
+      struct FIXTURE *ubench_fixture,                                          \
+      struct ubench_run_state_s *ubench_run_state)
 
 #define UBENCH_F(FIXTURE, NAME)                                                \
   static void ubench_run_##FIXTURE##_##NAME(struct FIXTURE *);                 \
   UBENCH_EX_F(FIXTURE, NAME) {                                                 \
-    UBENCH_DO_BENCHMARK() {                                                    \
-       ubench_run_##FIXTURE##_##NAME(ubench_fixture);                          \
-     }                                                                         \
+    UBENCH_DO_BENCHMARK() { ubench_run_##FIXTURE##_##NAME(ubench_fixture); }   \
   }                                                                            \
   void ubench_run_##FIXTURE##_##NAME(struct FIXTURE *ubench_fixture)
 
@@ -613,8 +636,9 @@ int ubench_main(int argc, const char *const argv[]) {
     ubench_int64_t iterations = 10;
     const ubench_int64_t max_iterations = UBENCH_MAX_ITERATIONS;
     const ubench_int64_t min_iterations = UBENCH_MIN_ITERATIONS;
-    /* Add one extra timestamp slot, as we save times between runs and time after exiting the last one */
-    ubench_int64_t ns[UBENCH_MAX_ITERATIONS+1];
+    /* Add one extra timestamp slot, as we save times between runs and time
+     * after exiting the last one */
+    ubench_int64_t ns[UBENCH_MAX_ITERATIONS + 1];
 #undef UBENCH_MAX_ITERATIONS
 #undef UBENCH_MIN_ITERATIONS
 
@@ -625,8 +649,8 @@ int ubench_main(int argc, const char *const argv[]) {
     printf("%s[ RUN      ]%s %s\n", colours[GREEN], colours[RESET],
            ubench_state.benchmarks[index].name);
 
-    ubs.ns     = ns;
-    ubs.size   = 1;
+    ubs.ns = ns;
+    ubs.size = 1;
     ubs.sample = 0;
 
     /* Time once to work out the base number of iterations to use. */
@@ -646,7 +670,7 @@ int ubench_main(int argc, const char *const argv[]) {
       iterations = iterations > max_iterations ? max_iterations : iterations;
 
       ubs.sample = 0;
-      ubs.size   = iterations;
+      ubs.size = iterations;
       ubench_state.benchmarks[index].func(&ubs);
 
       /* Calculate benchmark run-times */

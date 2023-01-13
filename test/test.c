@@ -1,11 +1,11 @@
 /*
    This is free and unencumbered software released into the public domain.
-  
+
    Anyone is free to copy, modify, publish, use, compile, sell, or
    distribute this software, either in source code form or as a compiled
    binary, for any purpose, commercial or non-commercial, and by any
    means.
-  
+
    In jurisdictions that recognize copyright laws, the author or authors
    of this software dedicate any and all copyright interest in the
    software to the public domain. We make this dedication for the benefit
@@ -13,7 +13,7 @@
    successors. We intend this dedication to be an overt act of
    relinquishment in perpetuity of all present and future rights to this
    software under copyright law.
-  
+
    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -21,7 +21,7 @@
    OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
    ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
    OTHER DEALINGS IN THE SOFTWARE.
-  
+
    For more information, please refer to <http://unlicense.org/>
 */
 
@@ -41,19 +41,19 @@ UBENCH(c, do_nothing) {
   UBENCH_DO_NOTHING(b);
 }
 
-UBENCH_EX(c, ex)
-{
+UBENCH_EX(c, ex) {
   int b[1024];
   int i;
   int sum;
   memset(b, 0x0, sizeof(b));
 
-  UBENCH_DO_BENCHMARK()
-  {
+  UBENCH_DO_BENCHMARK() {
     sum = 0;
-    for(i = 0; i < 1024; ++i)
+    for (i = 0; i < 1024; ++i)
       sum += i;
   }
+
+  UBENCH_DO_NOTHING(&sum);
 }
 
 struct c_my_fixture {
@@ -78,14 +78,10 @@ UBENCH_F(c_my_fixture, strrchr) {
   UBENCH_DO_NOTHING(strrchr(ubench_fixture->data, 'f'));
 }
 
-UBENCH_EX_F(c_my_fixture, strrchr_ex)
-{
-  char data[128*4];
+UBENCH_EX_F(c_my_fixture, strrchr_ex) {
+  char data[128 * 4];
   memcpy(data, ubench_fixture->data, sizeof(data));
-  data[sizeof(data)-1] = '\0';
-  
-  UBENCH_DO_BENCHMARK()
-  {
-    UBENCH_DO_NOTHING(strchr(data, 'f'));
-  }
+  data[sizeof(data) - 1] = '\0';
+
+  UBENCH_DO_BENCHMARK() { UBENCH_DO_NOTHING(strchr(data, 'f')); }
 }
