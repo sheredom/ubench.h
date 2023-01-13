@@ -26,6 +26,8 @@
 project(ubench)
 cmake_minimum_required(VERSION 3.15)
 
+set(UBENCH_USE_SANITIZER "" CACHE STRING "Set which Clang Sanitizer to use")
+
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../)
 
 add_executable(ubench_test
@@ -36,8 +38,27 @@ add_executable(ubench_test
   test11.cpp
 )
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  
+if(NOT "${UBENCH_USE_SANITIZER}" STREQUAL "")
+  target_compile_options(ubench_test PUBLIC -fno-omit-frame-pointer -fsanitize=${UBENCH_USE_SANITIZER})
+  target_link_options(ubench_test PUBLIC -fno-omit-frame-pointer -fsanitize=${UBENCH_USE_SANITIZER})
+endif()
+
+add_executable(ubench_test_wpo
+  ../ubench.h
+  main.c
+  test.c
+  test.cpp
+  test11.cpp
+)
+
+if(NOT "${UBENCH_USE_SANITIZER}" STREQUAL "")
+  target_compile_options(ubench_test_wpo PUBLIC -fno-omit-frame-pointer -fsanitize=${UBENCH_USE_SANITIZER})
+  target_link_options(ubench_test_wpo PUBLIC -fno-omit-frame-pointer -fsanitize=${UBENCH_USE_SANITIZER})
+endif()
+
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+  target_compile_options(ubench_test_wpo PRIVATE "$<$<CONFIG:RELEASE>:/GL>")
+  target_link_options(ubench_test_wpo PRIVATE "$<$<CONFIG:RELEASE>:/LTCG>")
 endif()
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
