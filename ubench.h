@@ -135,7 +135,7 @@ UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(
 #endif
 
 #elif defined(__APPLE__)
-#include <mach/mach_time.h>
+#include <time.h>
 #endif
 
 #if defined(__cplusplus)
@@ -296,7 +296,7 @@ static UBENCH_INLINE ubench_int64_t ubench_ns(void) {
   return UBENCH_CAST(ubench_int64_t, ts.tv_sec) * 1000 * 1000 * 1000 +
          ts.tv_nsec;
 #elif __APPLE__
-  return UBENCH_CAST(ubench_int64_t, mach_absolute_time());
+  return UBENCH_CAST(ubench_int64_t, clock_gettime_nsec_np(CLOCK_UPTIME_RAW));
 #endif
 }
 
