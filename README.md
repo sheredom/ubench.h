@@ -21,7 +21,7 @@ ubench.h supports some command line options:
 * `--help` to output the help message
 * `--filter=<filter>` will filter the benchmarks to run (useful for re-running
   one particular offending benchmark).
-* `--list-tests` will list benchmark names, one per line. Output names can be
+* `--list-benchmarks` will list benchmark names, one per line. Output names can be
   passed to `--filter`.
 * `--output=<output>`will output a CSV file of the results.
 * `--confidence=<confidence>` will change the confidence cut-off for a failed
