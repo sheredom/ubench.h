@@ -359,15 +359,30 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 #pragma clang diagnostic pop
 #endif
 
-static UBENCH_INLINE int ubench_do_benchmark(struct ubench_run_state_s *ubs) {
-  ubench_int64_t curr_sample = ubs->sample++;
-  ubs->ns[curr_sample] = ubench_ns();
-  return curr_sample < ubs->size ? 1 : 0;
-}
+#if defined(__clang__)
+#if __has_warning("-Wunsafe-buffer-usage")
+#define UBENCH_SURPRESS_WARNINGS_BEGIN                                         \
+  _Pragma("clang diagnostic push")                                             \
+      _Pragma("clang diagnostic ignored \"-Wunsafe-buffer-usage\"")
+#define UBENCH_SURPRESS_WARNINGS_END _Pragma("clang diagnostic pop")
+#else
+#define UBENCH_SURPRESS_WARNINGS_BEGIN
+#define UBENCH_SURPRESS_WARNINGS_END
+#endif
+#elif defined(__GNUC__) && __GNUC__ >= 8 && defined(__cplusplus)
+#define UBENCH_SURPRESS_WARNINGS_BEGIN                                         \
+  _Pragma("GCC diagnostic push")                                               \
+      _Pragma("GCC diagnostic ignored \"-Wclass-memaccess\"")
+#define UBENCH_SURPRESS_WARNINGS_END _Pragma("GCC diagnostic pop")
+#else
+#define UBENCH_SURPRESS_WARNINGS_BEGIN
+#define UBENCH_SURPRESS_WARNINGS_END
+#endif
 
 #define UBENCH_DO_BENCHMARK() while (ubench_do_benchmark(ubench_run_state) > 0)
 
 #define UBENCH_EX(SET, NAME)                                                   \
+  UBENCH_SURPRESS_WARNINGS_BEGIN                                               \
   UBENCH_EXTERN struct ubench_state_s ubench_state;                            \
   static void ubench_##SET##_##NAME(struct ubench_run_state_s *ubs);           \
   UBENCH_INITIALIZER(ubench_register_##SET##_##NAME) {                         \
@@ -384,6 +399,7 @@ static UBENCH_INLINE int ubench_do_benchmark(struct ubench_run_state_s *ubs) {
     ubench_state.benchmarks[index].name = name;                                \
     UBENCH_SNPRINTF(name, name_size, "%s", name_part);                         \
   }                                                                            \
+  UBENCH_SURPRESS_WARNINGS_END                                                 \
   void ubench_##SET##_##NAME(struct ubench_run_state_s *ubench_run_state)
 
 #define UBENCH(SET, NAME)                                                      \
@@ -400,6 +416,7 @@ static UBENCH_INLINE int ubench_do_benchmark(struct ubench_run_state_s *ubs) {
   static void ubench_f_teardown_##FIXTURE(struct FIXTURE *ubench_fixture)
 
 #define UBENCH_EX_F(FIXTURE, NAME)                                             \
+  UBENCH_SURPRESS_WARNINGS_BEGIN                                               \
   UBENCH_EXTERN struct ubench_state_s ubench_state;                            \
   static void ubench_f_setup_##FIXTURE(struct FIXTURE *);                      \
   static void ubench_f_teardown_##FIXTURE(struct FIXTURE *);                   \
@@ -427,6 +444,7 @@ static UBENCH_INLINE int ubench_do_benchmark(struct ubench_run_state_s *ubs) {
     ubench_state.benchmarks[index].name = name;                                \
     UBENCH_SNPRINTF(name, name_size, "%s", name_part);                         \
   }                                                                            \
+  UBENCH_SURPRESS_WARNINGS_END                                                 \
   void ubench_run_ex_##FIXTURE##_##NAME(                                       \
       struct FIXTURE *ubench_fixture,                                          \
       struct ubench_run_state_s *ubench_run_state)
@@ -437,6 +455,21 @@ static UBENCH_INLINE int ubench_do_benchmark(struct ubench_run_state_s *ubs) {
     UBENCH_DO_BENCHMARK() { ubench_run_##FIXTURE##_##NAME(ubench_fixture); }   \
   }                                                                            \
   void ubench_run_##FIXTURE##_##NAME(struct FIXTURE *ubench_fixture)
+
+#ifdef __clang__
+#pragma clang diagnostic push
+
+#if __has_warning("-Wunsafe-buffer-usage")
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+#endif
+#endif
+
+static UBENCH_INLINE int
+ubench_do_benchmark(struct ubench_run_state_s *const ubs) {
+  const ubench_int64_t curr_sample = ubs->sample++;
+  ubs->ns[curr_sample] = ubench_ns();
+  return curr_sample < ubs->size ? 1 : 0;
+}
 
 static UBENCH_INLINE int ubench_should_filter(const char *filter,
                                               const char *benchmark);
@@ -790,6 +823,10 @@ cleanup:
 
   return UBENCH_CAST(int, failed);
 }
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 UBENCH_C_FUNC UBENCH_NOINLINE void ubench_do_nothing(void *const);
 
