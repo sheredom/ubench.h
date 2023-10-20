@@ -14,6 +14,8 @@ The current supported platforms are Linux, macOS and Windows.
 
 The current supported compilers are gcc, clang, MSVC's cl.exe, and clang-cl.exe.
 
+It also works with tcc but with a caveat: the latest release of the tcc compiler (version 0.9.27) lacks a feature for UBENCH to work. Make sure to use a tcc that is patched with the constructor attribute extension. Recent Ubuntu and Debian Linux distros ship tcc with that patch already included. If you compile tcc yourself, use the trunk version and it will work as expected.
+
 ## Command Line Options
 
 ubench.h supports some command line options:

@@ -177,7 +177,7 @@ UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(
 #if defined(_MSC_VER)
 #define UBENCH_NOINLINE __declspec(noinline)
 #else
-#define UBENCH_NOINLINE __attribute__((noinline))
+#define UBENCH_NOINLINE __attribute((noinline))
 #endif
 
 #if defined(__cplusplus)
@@ -247,7 +247,7 @@ UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(
 #endif
 
 #define UBENCH_INITIALIZER(f)                                                  \
-  static void f(void) __attribute__((constructor));                            \
+  static void f(void) __attribute((constructor));                              \
   static void f(void)
 #endif
 
@@ -326,7 +326,7 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 #if defined(_MSC_VER)
 #define UBENCH_UNUSED
 #else
-#define UBENCH_UNUSED __attribute__((unused))
+#define UBENCH_UNUSED __attribute((unused))
 #endif
 
 #ifdef __clang__
@@ -845,13 +845,13 @@ UBENCH_C_FUNC void _ReadWriteBarrier(void);
   void ubench_do_nothing(void *ptr) {                                          \
     _Pragma("clang diagnostic push")                                           \
         _Pragma("clang diagnostic ignored \"-Wlanguage-extension-token\"");    \
-    asm volatile("" : : "r,m"(ptr) : "memory");                                \
+    asm volatile("" : : "r"(ptr), "m"(ptr) : "memory");                        \
     _Pragma("clang diagnostic pop");                                           \
   }
 #else
 #define UBENCH_DECLARE_DO_NOTHING()                                            \
   void ubench_do_nothing(void *ptr) {                                          \
-    asm volatile("" : : "r,m"(ptr) : "memory");                                \
+    asm volatile("" : : "r"(ptr), "m"(ptr) : "memory");                        \
   }
 #endif
 
