@@ -60,6 +60,13 @@ struct c_my_fixture {
   char *data;
 };
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#if __has_warning("-Wunsafe-buffer-usage")
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+#endif
+#endif
+
 UBENCH_F_SETUP(c_my_fixture) {
   const int size = 128 * 1024 * 1024;
   ubench_fixture->data = (char *)malloc(size);
@@ -85,3 +92,7 @@ UBENCH_EX_F(c_my_fixture, strrchr_ex) {
 
   UBENCH_DO_BENCHMARK() { UBENCH_DO_NOTHING(strchr(data, 'f')); }
 }
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
