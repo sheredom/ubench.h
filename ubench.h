@@ -76,6 +76,12 @@
 #define UBENCH_NULL 0
 #endif
 
+#if defined(__TINYC__)
+#define UBENCH_ATTRIBUTE(a) __attribute((a))
+#else
+#define UBENCH_ATTRIBUTE(a) __attribute__((a))
+#endif
+
 #if defined(_MSC_VER) && (_MSC_VER < 1920)
 typedef __int64 ubench_int64_t;
 typedef unsigned __int64 ubench_uint64_t;
@@ -177,7 +183,7 @@ UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(
 #if defined(_MSC_VER)
 #define UBENCH_NOINLINE __declspec(noinline)
 #else
-#define UBENCH_NOINLINE __attribute((noinline))
+#define UBENCH_NOINLINE UBENCH_ATTRIBUTE(noinline)
 #endif
 
 #if defined(__cplusplus)
@@ -247,7 +253,7 @@ UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(
 #endif
 
 #define UBENCH_INITIALIZER(f)                                                  \
-  static void f(void) __attribute((constructor));                              \
+  static void f(void) UBENCH_ATTRIBUTE(constructor);                           \
   static void f(void)
 #endif
 
@@ -326,7 +332,7 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 #if defined(_MSC_VER)
 #define UBENCH_UNUSED
 #else
-#define UBENCH_UNUSED __attribute((unused))
+#define UBENCH_UNUSED UBENCH_ATTRIBUTE(unused)
 #endif
 
 #ifdef __clang__
