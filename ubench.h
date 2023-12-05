@@ -393,7 +393,7 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
   static void ubench_##SET##_##NAME(struct ubench_run_state_s *ubs);           \
   UBENCH_INITIALIZER(ubench_register_##SET##_##NAME) {                         \
     const size_t index = ubench_state.benchmarks_length++;                     \
-    const char *name_part = #SET "." #NAME;                                    \
+    const char name_part[] = #SET "." #NAME;                                   \
     const size_t name_size = strlen(name_part) + 1;                            \
     char *name = UBENCH_PTR_CAST(char *, malloc(name_size));                   \
     ubench_state.benchmarks = UBENCH_PTR_CAST(                                 \
@@ -438,7 +438,7 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
   }                                                                            \
   UBENCH_INITIALIZER(ubench_register_##FIXTURE##_##NAME) {                     \
     const size_t index = ubench_state.benchmarks_length++;                     \
-    const char *name_part = #FIXTURE "." #NAME;                                \
+    const char name_part[] = #FIXTURE "." #NAME;                               \
     const size_t name_size = strlen(name_part) + 1;                            \
     char *name = UBENCH_PTR_CAST(char *, malloc(name_size));                   \
     ubench_state.benchmarks = UBENCH_PTR_CAST(                                 \
