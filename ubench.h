@@ -230,9 +230,8 @@ UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(
 #define UBENCH_INITIALIZER(f)                                                  \
   static void __cdecl f(void);                                                 \
   UBENCH_INITIALIZER_BEGIN_DISABLE_WARNINGS __pragma(                          \
-      comment(linker, "/include:" UBENCH_SYMBOL_PREFIX #f "_"))                \
-      UBENCH_C_FUNC __declspec(allocate(".CRT$XCU")) void(__cdecl *            \
-                                                          f##_)(void) = f;     \
+      comment(linker, "/include:" UBENCH_SYMBOL_PREFIX #f "_")) UBENCH_C_FUNC  \
+      __declspec(allocate(".CRT$XCU")) void(__cdecl * f##_)(void) = f;         \
   UBENCH_INITIALIZER_END_DISABLE_WARNINGS static void __cdecl f(void)
 #else
 #if defined(__linux__)
@@ -283,26 +282,49 @@ UBENCH_C_FUNC __declspec(dllimport) int __stdcall QueryPerformanceFrequency(
 #define UBENCH_COLOUR_OUTPUT() (isatty(STDOUT_FILENO))
 #endif
 
+// Prevent 64-bit integer overflow when computing a timestamp by using a trick
+// from Sokol:
+// https://github.com/floooh/sokol/blob/189843bf4f86969ca4cc4b6d94e793a37c5128a7/sokol_time.h#L204
+static UBENCH_INLINE ubench_int64_t ubench_mul_div(const ubench_int64_t value,
+                                                   const ubench_int64_t numer,
+                                                   const ubench_int64_t denom) {
+  const ubench_int64_t q = value / denom;
+  const ubench_int64_t r = value % denom;
+  return q * numer + r * numer / denom;
+}
+
 static UBENCH_INLINE ubench_int64_t ubench_ns(void) {
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || defined(__MINGW64__) || defined(__MINGW32__)
   ubench_large_integer counter;
   ubench_large_integer frequency;
   QueryPerformanceCounter(&counter);
   QueryPerformanceFrequency(&frequency);
-  return UBENCH_CAST(ubench_int64_t,
-                     (counter.QuadPart * 1000000000) / frequency.QuadPart);
-#elif defined(__linux)
+  return ubench_mul_div(counter.QuadPart, 1000000000, frequency.QuadPart);
+#elif defined(__linux__) && defined(__STRICT_ANSI__)
+  return ubench_mul_div(clock(), 1000000000, CLOCKS_PER_SEC);
+#elif defined(__linux__) || defined(__FreeBSD__) || defined(__OpenBSD__) ||    \
+    defined(__NetBSD__) || defined(__DragonFly__) || defined(__sun__) ||       \
+    defined(__HAIKU__)
   struct timespec ts;
+#if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L) &&              \
+    !defined(__HAIKU__)
+  timespec_get(&ts, TIME_UTC);
+#else
   const clockid_t cid = CLOCK_REALTIME;
 #if defined(UBENCH_USE_CLOCKGETTIME)
   clock_gettime(cid, &ts);
 #else
   syscall(SYS_clock_gettime, cid, &ts);
 #endif
+#endif
   return UBENCH_CAST(ubench_int64_t, ts.tv_sec) * 1000 * 1000 * 1000 +
          ts.tv_nsec;
 #elif __APPLE__
   return UBENCH_CAST(ubench_int64_t, clock_gettime_nsec_np(CLOCK_UPTIME_RAW));
+#elif __EMSCRIPTEN__
+  return emscripten_performance_now() * 1000000.0;
+#else
+#error Unsupported platform!
 #endif
 }
 
