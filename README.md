@@ -71,7 +71,7 @@ to ensure some meaningful confidence interval can be computed.
 In one C or C++ file, you must call the macro UBENCH_MAIN:
 
 ```c
-UBENCH_MAIN();
+UBENCH_MAIN()
 ```
 
 This will call into ubench.h, instantiate all the benchmarks and run the
