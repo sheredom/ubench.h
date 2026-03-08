@@ -807,13 +807,10 @@ int ubench_main(int argc, const char *const argv[]) {
         unit we report. */
         best_avg_ns /= 1000;
 
-        switch (mndex) {
-        case 0:
+        if (0 == mndex) {
           unit = "ms";
-          break;
-        case 1:
+        } else {
           unit = "s";
-          break;
         }
       }
 
