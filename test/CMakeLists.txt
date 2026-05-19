@@ -23,106 +23,192 @@
 #
 # For more information, please refer to <http://unlicense.org/>
 
-project(ubench)
 cmake_minimum_required(VERSION 3.15)
+project(ubench)
 
-set(UBENCH_USE_SANITIZER "" CACHE STRING "Set which Clang Sanitizer to use")
+include(CTest)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../)
 
-add_executable(ubench_test
+# Base warning flags and whether -std= flags are supported.
+# MSVC and clang-cl use /std: and don't accept -std=, so we skip
+# the standard flag for those compilers.
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
+  set(UBENCH_C_WARNINGS "-Wall -Wextra -Werror")
+  set(UBENCH_CXX_WARNINGS "-Wall -Wextra -Werror")
+  set(UBENCH_USE_STD_FLAG TRUE)
+elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
+  if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+    set(UBENCH_C_WARNINGS "/Wall /WX /wd4514 /wd5045")
+    set(UBENCH_CXX_WARNINGS "/Wall /WX /wd4514 /wd5045")
+    set(UBENCH_USE_STD_FLAG FALSE)
+  else()
+    set(UBENCH_C_WARNINGS "-Wall -Wextra -Weverything -Werror")
+    set(UBENCH_CXX_WARNINGS "-Wall -Wextra -Weverything -Werror")
+    set(UBENCH_USE_STD_FLAG TRUE)
+  endif()
+elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
+  set(UBENCH_C_WARNINGS "/Wall /WX /wd4514 /wd5045")
+  set(UBENCH_CXX_WARNINGS "/Wall /WX /wd4514 /wd5045")
+  set(UBENCH_USE_STD_FLAG FALSE)
+else()
+  message(WARNING "Unknown compiler '${CMAKE_C_COMPILER_ID}'!")
+endif()
+
+# Helper: set compile flags for a C source file (warnings + standard).
+function(ubench_set_c_flags FILE STANDARD)
+  if(UBENCH_USE_STD_FLAG)
+    set_source_files_properties(${FILE} PROPERTIES
+      COMPILE_FLAGS "${UBENCH_C_WARNINGS} ${STANDARD}")
+  else()
+    set_source_files_properties(${FILE} PROPERTIES
+      COMPILE_FLAGS "${UBENCH_C_WARNINGS}")
+  endif()
+endfunction()
+
+# Helper: set compile flags for a C++ source file (warnings + standard + extras).
+function(ubench_set_cxx_flags FILE STANDARD)
+  if(UBENCH_USE_STD_FLAG)
+    set(EXTRA_FLAGS ${ARGN})
+    set_source_files_properties(${FILE} PROPERTIES
+      COMPILE_FLAGS "${UBENCH_CXX_WARNINGS} ${STANDARD} ${EXTRA_FLAGS}")
+  else()
+    set_source_files_properties(${FILE} PROPERTIES
+      COMPILE_FLAGS "${UBENCH_CXX_WARNINGS}")
+  endif()
+endfunction()
+
+# C files — each compiled under a specific C standard.
+ubench_set_c_flags(main.c  "-std=gnu89")
+ubench_set_c_flags(test.c  "-std=gnu89")
+ubench_set_c_flags(test99.c "-std=gnu99")
+
+list(FIND CMAKE_C_COMPILE_FEATURES c_std_11 IDX)
+if(${IDX} GREATER -1)
+  ubench_set_c_flags(test11.c "-std=gnu11")
+endif()
+
+list(FIND CMAKE_C_COMPILE_FEATURES c_std_17 IDX)
+if(${IDX} GREATER -1)
+  ubench_set_c_flags(test17.c "-std=gnu17")
+endif()
+
+list(FIND CMAKE_C_COMPILE_FEATURES c_std_23 IDX)
+if(${IDX} GREATER -1)
+  ubench_set_c_flags(test23.c "-std=gnu23")
+endif()
+
+# C++ files — each compiled under a specific C++ standard.
+ubench_set_cxx_flags(test.cpp   "" "-Wno-c++98-compat")
+ubench_set_cxx_flags(test98.cpp "-std=gnu++98")
+ubench_set_cxx_flags(test11.cpp "-std=c++11" "-Wno-c++98-compat")
+ubench_set_cxx_flags(test14.cpp "-std=c++14" "-Wno-c++98-compat")
+ubench_set_cxx_flags(test17.cpp "-std=c++17" "-Wno-c++98-compat")
+ubench_set_cxx_flags(test20.cpp "-std=c++20" "-Wno-c++98-compat")
+
+list(FIND CMAKE_CXX_COMPILE_FEATURES cxx_std_23 IDX)
+if(${IDX} GREATER -1)
+  ubench_set_cxx_flags(test23.cpp "-std=c++23" "-Wno-c++98-compat")
+endif()
+
+set(UBENCH_TEST_SOURCES
   ../ubench.h
   main.c
   test.c
+  test99.c
+  test11.c
+  test17.c
+  test23.c
   test.cpp
+  test98.cpp
   test11.cpp
+  test14.cpp
+  test17.cpp
+  test20.cpp
+  test23.cpp
 )
 
-if(NOT "${UBENCH_USE_SANITIZER}" STREQUAL "")
-  target_compile_options(ubench_test PUBLIC -fno-omit-frame-pointer -fsanitize=${UBENCH_USE_SANITIZER})
-  target_link_options(ubench_test PUBLIC -fno-omit-frame-pointer -fsanitize=${UBENCH_USE_SANITIZER})
-endif()
+# Helper: add a test executable and register it with CTest.
+function(ubench_add_test NAME)
+  add_executable(${NAME} ${UBENCH_TEST_SOURCES})
+  add_test(NAME ${NAME} COMMAND $<TARGET_FILE:${NAME}> --confidence=100)
+endfunction()
 
-add_executable(ubench_test_wpo
-  ../ubench.h
-  main.c
-  test.c
-  test.cpp
-  test11.cpp
-)
+ubench_add_test(ubench_test)
 
-if(NOT "${UBENCH_USE_SANITIZER}" STREQUAL "")
-  target_compile_options(ubench_test_wpo PUBLIC -fno-omit-frame-pointer -fsanitize=${UBENCH_USE_SANITIZER})
-  target_link_options(ubench_test_wpo PUBLIC -fno-omit-frame-pointer -fsanitize=${UBENCH_USE_SANITIZER})
-endif()
-
+# Whole-program-optimization variant.
+ubench_add_test(ubench_test_wpo)
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   target_compile_options(ubench_test_wpo PRIVATE "$<$<CONFIG:RELEASE>:/GL>")
   target_link_options(ubench_test_wpo PRIVATE "$<$<CONFIG:RELEASE>:/LTCG>")
 endif()
 
-if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-  set_source_files_properties(main.c test.c PROPERTIES
-    COMPILE_FLAGS "-Wall -Wextra -Werror -std=gnu89"
-  )
-elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
-  if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
-    set_source_files_properties(main.c test.c PROPERTIES
-      COMPILE_FLAGS "/Wall /WX /wd4514 /wd5045"
-    )
-  else()
-    set_source_files_properties(main.c test.c PROPERTIES
-      COMPILE_FLAGS "-Wall -Wextra -Weverything -Werror -std=gnu89"
-    )
+# Some sanitizer runtimes can't initialise on every host even when
+# the toolchain links them fine — e.g. clang's TSan and MSan on
+# aarch64 only ship shadow-memory layouts for 39-, 42- and 48-bit
+# user VMAs, but Raspberry Pi OS' kernel is configured with
+# CONFIG_ARM64_VA_BITS=47. The binary builds, but aborts before
+# main with "FATAL: ThreadSanitizer: unsupported VMA range". Probe
+# each candidate sanitizer with try_run and skip the ones whose
+# runtime can't start. Result is cached so reconfigure is cheap;
+# delete CMakeCache.txt to re-probe (e.g. after changing kernels).
+function(ubench_check_sanitizer_runs SAN OUT_VAR)
+  set(CACHE_VAR "UBENCH_SAN_${SAN}_RUNS")
+  if(DEFINED ${CACHE_VAR})
+    set(${OUT_VAR} ${${CACHE_VAR}} PARENT_SCOPE)
+    return()
   endif()
-elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
-  set_source_files_properties(main.c test.c PROPERTIES
-    COMPILE_FLAGS "/Wall /WX /wd4514 /wd5045"
-  )
-else()
-  message(WARNING "Unknown compiler '${CMAKE_C_COMPILER_ID}'!")
-endif()
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  set_source_files_properties(test.cpp PROPERTIES
-    COMPILE_FLAGS "-Wall -Wextra -Werror -std=gnu++98"
-  )
-elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
-    set_source_files_properties(test.cpp PROPERTIES
-      COMPILE_FLAGS "/Wall /WX /wd4514 /wd5045"
-    )
-  else()
-    set_source_files_properties(test.cpp PROPERTIES
-      COMPILE_FLAGS "-Wall -Wextra -Weverything -Werror -std=gnu++98"
-    )
-  endif()
-elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-  set_source_files_properties(test.cpp PROPERTIES
-    COMPILE_FLAGS "/Wall /WX /wd4514 /wd5045"
-  )
-else()
-  message(WARNING "Unknown compiler '${CMAKE_C_COMPILER_ID}'!")
-endif()
+  set(PROBE_SRC "${CMAKE_BINARY_DIR}/ubench_san_probe.c")
+  file(WRITE "${PROBE_SRC}" "int main(void) { return 0; }\n")
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-  set_source_files_properties(test11.cpp PROPERTIES
-    COMPILE_FLAGS "-Wall -Wextra -Werror -std=c++11"
+  try_run(RUN_RESULT COMPILE_RESULT
+    "${CMAKE_BINARY_DIR}/ubench_san_probe_${SAN}"
+    "${PROBE_SRC}"
+    COMPILE_DEFINITIONS "-fsanitize=${SAN}" "-fno-omit-frame-pointer"
+    LINK_OPTIONS "-fsanitize=${SAN}"
   )
-elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
-    set_source_files_properties(test11.cpp PROPERTIES
-      COMPILE_FLAGS "/Wall /WX /wd4514 /wd5045"
-    )
+
+  if(COMPILE_RESULT AND "${RUN_RESULT}" STREQUAL "0")
+    set(RESULT TRUE)
+    message(STATUS "Sanitizer ${SAN}: usable")
   else()
-    set_source_files_properties(test11.cpp PROPERTIES
-      COMPILE_FLAGS "-Wall -Wextra -Weverything -Werror -std=c++11 -Wno-c++98-compat"
-    )
+    set(RESULT FALSE)
+    message(STATUS "Sanitizer ${SAN}: skipping "
+                   "(compile=${COMPILE_RESULT}, run=${RUN_RESULT})")
   endif()
-elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-  set_source_files_properties(test11.cpp PROPERTIES
-    COMPILE_FLAGS "/Wall /WX /wd4514 /wd5045"
+
+  set(${CACHE_VAR} ${RESULT} CACHE INTERNAL
+      "Whether the ${SAN} sanitizer runtime starts on this host")
+  set(${OUT_VAR} ${RESULT} PARENT_SCOPE)
+endfunction()
+
+if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang" AND NOT "${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "MSVC")
+  set(UBENCH_SANITIZER_CANDIDATES
+    address
+    undefined
+    thread
   )
-else()
-  message(WARNING "Unknown compiler '${CMAKE_C_COMPILER_ID}'!")
+
+  if(NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
+    set(UBENCH_SANITIZER_CANDIDATES ${UBENCH_SANITIZER_CANDIDATES} memory)
+  endif()
+
+  set(UBENCH_SANITIZERS)
+  foreach(UBENCH_SANITIZER ${UBENCH_SANITIZER_CANDIDATES})
+    if(CMAKE_CROSSCOMPILING)
+      list(APPEND UBENCH_SANITIZERS ${UBENCH_SANITIZER})
+    else()
+      ubench_check_sanitizer_runs(${UBENCH_SANITIZER} UBENCH_SAN_RUNS)
+      if(UBENCH_SAN_RUNS)
+        list(APPEND UBENCH_SANITIZERS ${UBENCH_SANITIZER})
+      endif()
+    endif()
+  endforeach()
+
+  foreach(UBENCH_SANITIZER ${UBENCH_SANITIZERS})
+    ubench_add_test(ubench_${UBENCH_SANITIZER}_test)
+    target_compile_options(ubench_${UBENCH_SANITIZER}_test PRIVATE -fsanitize=${UBENCH_SANITIZER} -fno-omit-frame-pointer)
+    target_link_options(ubench_${UBENCH_SANITIZER}_test PRIVATE -fsanitize=${UBENCH_SANITIZER})
+  endforeach()
 endif()

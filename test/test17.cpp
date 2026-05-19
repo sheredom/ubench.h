@@ -27,10 +27,10 @@
 
 #include "ubench.h"
 
-struct cpp_my_fixture {
+struct cpp17_my_fixture {
   char *data;
 };
 
-#define UBENCH_SUITE cpp
-#define UBENCH_FIXTURE cpp_my_fixture
+#define UBENCH_SUITE cpp17
+#define UBENCH_FIXTURE cpp17_my_fixture
 #include "test_shared.h"
