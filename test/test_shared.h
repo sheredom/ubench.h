@@ -68,7 +68,7 @@
 #define UBENCH_F_TEARDOWN_WRAP(fx) UBENCH_F_TEARDOWN(fx)
 
 #if !defined(_MSC_VER)
-UBENCH_WRAP(UBENCH_SUITE, tenth_of_a_second) { usleep(100 * 1000); }
+UBENCH_WRAP(UBENCH_SUITE, tenth_of_a_second) { usleep(1000); }
 #endif
 
 UBENCH_WRAP(UBENCH_SUITE, do_nothing) {
