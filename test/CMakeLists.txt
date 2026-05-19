@@ -171,8 +171,8 @@ function(ubench_check_sanitizer_runs SAN OUT_VAR)
     return()
   endif()
 
-  set(PROBE_SRC "${CMAKE_BINARY_DIR}/ubench_san_probe.c")
-  file(WRITE "${PROBE_SRC}" "int main(void) { return 0; }\n")
+  set(PROBE_SRC "${CMAKE_BINARY_DIR}/ubench_san_probe_${SAN}.c")
+  file(WRITE "${PROBE_SRC}" "#include <stdint.h>\nint main(void) { return 0; }\n")
 
   try_run(RUN_RESULT COMPILE_RESULT
     "${CMAKE_BINARY_DIR}/ubench_san_probe_${SAN}"
@@ -196,15 +196,14 @@ function(ubench_check_sanitizer_runs SAN OUT_VAR)
 endfunction()
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang" AND NOT "${CMAKE_CXX_COMPILER_FRONTEND_VARIANT}" STREQUAL "MSVC")
+  # MemorySanitizer is excluded because ubench.h's use of clock_gettime
+  # triggers false-positive use-of-uninitialized-value reports (the
+  # kernel writes to the timespec struct but MSan doesn't know).
   set(UBENCH_SANITIZER_CANDIDATES
     address
     undefined
     thread
   )
-
-  if(NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
-    set(UBENCH_SANITIZER_CANDIDATES ${UBENCH_SANITIZER_CANDIDATES} memory)
-  endif()
 
   set(UBENCH_SANITIZERS)
   foreach(UBENCH_SANITIZER ${UBENCH_SANITIZER_CANDIDATES})
