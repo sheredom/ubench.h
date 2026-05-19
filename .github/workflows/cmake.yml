@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         type: [Debug, RelWithDebInfo, MinSizeRel, Release]
@@ -71,9 +72,4 @@ jobs:
     - name: Test
       working-directory: ${{github.workspace}}/build
       shell: bash
-      run: if [ "${{ matrix.os }}" == "windows-latest" ]; then cd ${{ matrix.type }}; fi; ./ubench_test --confidence=100
-
-    - name: Test
-      working-directory: ${{github.workspace}}/build
-      shell: bash
-      run: if [ "${{ matrix.os }}" == "windows-latest" ]; then cd ${{ matrix.type }}; fi; ./ubench_test_wpo --confidence=100
+      run: ctest --rerun-failed --output-on-failure -C ${{ matrix.type }}

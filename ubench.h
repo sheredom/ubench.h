@@ -97,6 +97,12 @@ typedef uint64_t ubench_uint64_t;
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+#include <sanitizer/msan_interface.h>
+#endif
+#endif
+
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
@@ -315,6 +321,18 @@ static UBENCH_INLINE ubench_int64_t ubench_ns(void) {
   clock_gettime(cid, &ts);
 #else
   syscall(SYS_clock_gettime, cid, &ts);
+#endif
+#endif
+#if defined(__has_feature)
+#if __has_feature(memory_sanitizer)
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreserved-identifier"
+#endif
+  __msan_unpoison(&ts, sizeof(ts));
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 #endif
 #endif
   return UBENCH_CAST(ubench_int64_t, ts.tv_sec) * 1000 * 1000 * 1000 +
