@@ -37,6 +37,16 @@
 #pragma warning(push, 0)
 #endif
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#if __has_warning("-Wunsafe-buffer-usage-in-libc-call")
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage-in-libc-call"
+#endif
+#if __has_warning("-Wunsafe-buffer-usage")
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+#endif
+#endif
+
 #if !defined(_MSC_VER)
 #include <unistd.h>
 #endif
