@@ -148,7 +148,9 @@ UBENCH_EX_WRAP(UBENCH_SUITE, skip_after) {
 
 UBENCH_EX_F_WRAP(UBENCH_FIXTURE, skip) {
   UBENCH_SKIP();
-  UBENCH_DO_BENCHMARK() { UBENCH_DO_NOTHING(strchr(ubench_fixture->data, 'f')); }
+  UBENCH_DO_BENCHMARK() {
+    UBENCH_DO_NOTHING(strchr(ubench_fixture->data, 'f'));
+  }
   UBENCH_FAIL();
 }
 
@@ -158,8 +160,8 @@ UBENCH_WRAP(UBENCH_SUITE, skip_no_ex) {
 }
 
 UBENCH_F_WRAP(UBENCH_FIXTURE, skip_no_ex) {
-  (void)ubench_fixture;
   UBENCH_SKIP();
+  UBENCH_DO_NOTHING(strchr(ubench_fixture->data, 'f'));
   UBENCH_FAIL();
 }
 
