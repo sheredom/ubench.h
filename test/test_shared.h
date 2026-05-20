@@ -128,54 +128,34 @@ UBENCH_EX_F_WRAP(UBENCH_FIXTURE, strchr_ex) {
 }
 
 UBENCH_EX_WRAP(UBENCH_SUITE, skip) {
+  (void)ubench_run_state;
   UBENCH_SKIP();
-  /* Should never be reached */
-  UBENCH_DO_BENCHMARK() {}
+  UBENCH_FAIL();
 }
 
 UBENCH_EX_F_WRAP(UBENCH_FIXTURE, skip) {
   (void)ubench_fixture;
+  (void)ubench_run_state;
   UBENCH_SKIP();
-  /* Should never be reached */
-  UBENCH_DO_BENCHMARK() {}
+  UBENCH_FAIL();
 }
 
 UBENCH_WRAP(UBENCH_SUITE, skip_no_ex) {
   UBENCH_SKIP();
+  UBENCH_FAIL();
 }
 
 UBENCH_F_WRAP(UBENCH_FIXTURE, skip_no_ex) {
   (void)ubench_fixture;
   UBENCH_SKIP();
+  UBENCH_FAIL();
 }
 
 UBENCH_EX_WRAP(UBENCH_SUITE, skip_after) {
   UBENCH_DO_BENCHMARK() {
-    /* run one benchmark iteration then skip */
     UBENCH_SKIP();
+    UBENCH_FAIL();
   }
-}
-
-UBENCH_EX_WRAP(UBENCH_SUITE, fail) {
-  UBENCH_FAIL();
-  /* Should never be reached */
-  UBENCH_DO_BENCHMARK() {}
-}
-
-UBENCH_EX_F_WRAP(UBENCH_FIXTURE, fail) {
-  (void)ubench_fixture;
-  UBENCH_FAIL();
-  /* Should never be reached */
-  UBENCH_DO_BENCHMARK() {}
-}
-
-UBENCH_WRAP(UBENCH_SUITE, fail_no_ex) {
-  UBENCH_FAIL();
-}
-
-UBENCH_F_WRAP(UBENCH_FIXTURE, fail_no_ex) {
-  (void)ubench_fixture;
-  UBENCH_FAIL();
 }
 
 #if defined(__clang__)
