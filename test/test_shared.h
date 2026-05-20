@@ -128,15 +128,27 @@ UBENCH_EX_F_WRAP(UBENCH_FIXTURE, strchr_ex) {
 }
 
 UBENCH_EX_WRAP(UBENCH_SUITE, skip) {
-  (void)ubench_run_state;
+  UBENCH_SKIP();
+  UBENCH_DO_BENCHMARK() {}
+  UBENCH_FAIL();
+}
+
+UBENCH_EX_WRAP(UBENCH_SUITE, skip_during) {
+  UBENCH_DO_BENCHMARK() {
+    UBENCH_SKIP();
+    UBENCH_FAIL();
+  }
+}
+
+UBENCH_EX_WRAP(UBENCH_SUITE, skip_after) {
+  UBENCH_DO_BENCHMARK() {}
   UBENCH_SKIP();
   UBENCH_FAIL();
 }
 
 UBENCH_EX_F_WRAP(UBENCH_FIXTURE, skip) {
-  (void)ubench_fixture;
-  (void)ubench_run_state;
   UBENCH_SKIP();
+  UBENCH_DO_BENCHMARK() { UBENCH_DO_NOTHING(strchr(ubench_fixture->data, 'f')); }
   UBENCH_FAIL();
 }
 
@@ -149,13 +161,6 @@ UBENCH_F_WRAP(UBENCH_FIXTURE, skip_no_ex) {
   (void)ubench_fixture;
   UBENCH_SKIP();
   UBENCH_FAIL();
-}
-
-UBENCH_EX_WRAP(UBENCH_SUITE, skip_after) {
-  UBENCH_DO_BENCHMARK() {
-    UBENCH_SKIP();
-    UBENCH_FAIL();
-  }
 }
 
 #if defined(__clang__)
