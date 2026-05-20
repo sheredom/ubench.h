@@ -359,6 +359,11 @@ struct ubench_benchmark_state_s {
   char *name;
 };
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
+#endif
+
 enum ubench_result_e {
   UBENCH_RESULT_PASS,
   UBENCH_RESULT_SKIP,
@@ -372,6 +377,10 @@ struct ubench_state_s {
   double confidence;
   enum ubench_result_e result;
 };
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 /* extern to the global state ubench needs to execute */
 UBENCH_EXTERN struct ubench_state_s ubench_state;
@@ -531,12 +540,14 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 
 static UBENCH_INLINE int
 ubench_do_benchmark(struct ubench_run_state_s *const ubs) {
+  const ubench_int64_t curr_sample = ubs->sample++;
+  ubs->ns[curr_sample] = ubench_ns();
+
   if (UBENCH_RESULT_SKIP == ubench_state.result ||
       UBENCH_RESULT_FAIL == ubench_state.result) {
     return 0;
   }
-  const ubench_int64_t curr_sample = ubs->sample++;
-  ubs->ns[curr_sample] = ubench_ns();
+
   return curr_sample < ubs->size ? 1 : 0;
 }
 
