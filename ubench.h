@@ -364,6 +364,7 @@ struct ubench_state_s {
   size_t benchmarks_length;
   FILE *output;
   double confidence;
+  int skipped;
 };
 
 /* extern to the global state ubench needs to execute */
@@ -426,6 +427,12 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 #endif
 
 #define UBENCH_DO_BENCHMARK() while (ubench_do_benchmark(ubench_run_state) > 0)
+
+#define UBENCH_SKIP()                                                          \
+  do {                                                                         \
+    ubench_state.skipped = 1;                                                  \
+    return;                                                                    \
+  } while (0)
 
 #define UBENCH_EX(SET, NAME)                                                   \
   UBENCH_SURPRESS_WARNINGS_BEGIN                                               \
@@ -732,8 +739,17 @@ int ubench_main(int argc, const char *const argv[]) {
     ubs.size = 1;
     ubs.sample = 0;
 
+    ubench_state.skipped = 0;
+
     /* Time once to work out the base number of iterations to use. */
     ubench_state.benchmarks[index].func(&ubs);
+
+    if (ubench_state.skipped) {
+      printf("%s[  SKIPPED ]%s %s\n", colours[GREEN], colours[RESET],
+             ubench_state.benchmarks[index].name);
+      ubench_state.skipped = 0;
+      continue;
+    }
 
     iterations = (100 * 1000 * 1000) / ((ns[1] <= ns[0]) ? 1 : ns[1] - ns[0]);
     iterations = iterations < min_iterations ? min_iterations : iterations;
@@ -909,7 +925,7 @@ UBENCH_C_FUNC void _ReadWriteBarrier(void);
 */
 #define UBENCH_STATE()                                                         \
   UBENCH_DECLARE_DO_NOTHING()                                                  \
-  struct ubench_state_s ubench_state = {0, 0, 0, 2.5}
+  struct ubench_state_s ubench_state = {0, 0, 0, 2.5, 0}
 
 /*
    define a main() function to call into ubench.h and start executing

@@ -127,6 +127,19 @@ UBENCH_EX_F_WRAP(UBENCH_FIXTURE, strchr_ex) {
   UBENCH_DO_BENCHMARK() { UBENCH_DO_NOTHING(strchr(data, 'f')); }
 }
 
+UBENCH_EX_WRAP(UBENCH_SUITE, skip) {
+  UBENCH_SKIP();
+  /* Should never be reached */
+  UBENCH_DO_BENCHMARK() {}
+}
+
+UBENCH_EX_F_WRAP(UBENCH_FIXTURE, skip) {
+  (void)ubench_fixture;
+  UBENCH_SKIP();
+  /* Should never be reached */
+  UBENCH_DO_BENCHMARK() {}
+}
+
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
