@@ -220,6 +220,55 @@ meaning that the compiler cannot optimize the data away. This is incredibly
 useful for benchmarks because they generally want to run some code for timing
 and not have the compiler optimize the code away.
 
+### UBENCH_SKIP()
+
+The helper macro `UBENCH_SKIP` can be called inside a benchmark to skip it at
+runtime. This is useful when a benchmark is only meaningful under certain
+conditions that can't be determined at compile time (e.g. CPU feature
+availability, environment capabilities, etc.):
+
+```c
+UBENCH_EX(foo, bar) {
+  if (!some_runtime_condition) {
+    UBENCH_SKIP();
+  }
+  UBENCH_DO_BENCHMARK() {
+    /* benchmark code */
+  }
+}
+```
+
+Skipped benchmarks are counted as passed, and the file and line of the
+`UBENCH_SKIP()` call is printed in the output:
+
+```
+[ RUN      ] foo.bar
+test.c:12: Skipped
+[  SKIPPED ] foo.bar
+```
+
+### UBENCH_FAIL()
+
+The helper macro `UBENCH_FAIL` can be called inside a benchmark to fail it at
+runtime. This is useful as a safety net — for instance, placed after
+`UBENCH_SKIP()` to guard against the skip not taking effect:
+
+```c
+UBENCH_EX(foo, bar) {
+  UBENCH_SKIP();
+  UBENCH_FAIL(); /* Should never be reached */
+}
+```
+
+Failed benchmarks are counted as failures, and the file and line of the
+`UBENCH_FAIL()` call is printed in the output:
+
+```
+[ RUN      ] foo.bar
+test.c:12: Failure
+[  FAILED  ] foo.bar
+```
+
 ## License
 
 This is free and unencumbered software released into the public domain.
