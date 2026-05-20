@@ -250,13 +250,17 @@ test.c:12: Skipped
 ### UBENCH_FAIL()
 
 The helper macro `UBENCH_FAIL` can be called inside a benchmark to fail it at
-runtime. This is useful as a safety net — for instance, placed after
-`UBENCH_SKIP()` to guard against the skip not taking effect:
+runtime. This is useful when setup for the benchmark is not possible — for
+instance, if some library or resource couldn't be initialized:
 
 ```c
 UBENCH_EX(foo, bar) {
-  UBENCH_SKIP();
-  UBENCH_FAIL(); /* Should never be reached */
+  if (!init_library()) {
+    UBENCH_FAIL();
+  }
+
+  /* cleanup on success */
+  deinit_library();
 }
 ```
 
