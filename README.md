@@ -220,6 +220,59 @@ meaning that the compiler cannot optimize the data away. This is incredibly
 useful for benchmarks because they generally want to run some code for timing
 and not have the compiler optimize the code away.
 
+### UBENCH_SKIP()
+
+The helper macro `UBENCH_SKIP` can be called inside a benchmark to skip it at
+runtime. This is useful when a benchmark is only meaningful under certain
+conditions that can't be determined at compile time (e.g. CPU feature
+availability, environment capabilities, etc.):
+
+```c
+UBENCH_EX(foo, bar) {
+  if (!some_runtime_condition) {
+    UBENCH_SKIP();
+  }
+  UBENCH_DO_BENCHMARK() {
+    /* benchmark code */
+  }
+}
+```
+
+Skipped benchmarks are counted as passed, and the file and line of the
+`UBENCH_SKIP()` call is printed in the output:
+
+```
+[ RUN      ] foo.bar
+test.c:12: Skipped
+[  SKIPPED ] foo.bar
+```
+
+### UBENCH_FAIL()
+
+The helper macro `UBENCH_FAIL` can be called inside a benchmark to fail it at
+runtime. This is useful when setup for the benchmark is not possible — for
+instance, if some library or resource couldn't be initialized:
+
+```c
+UBENCH_EX(foo, bar) {
+  if (!init_library()) {
+    UBENCH_FAIL();
+  }
+
+  /* cleanup on success */
+  deinit_library();
+}
+```
+
+Failed benchmarks are counted as failures, and the file and line of the
+`UBENCH_FAIL()` call is printed in the output:
+
+```
+[ RUN      ] foo.bar
+test.c:12: Failure
+[  FAILED  ] foo.bar
+```
+
 ## AI Usage
 
 AI tool use is explicitly permitted in commits to this repository. There is a

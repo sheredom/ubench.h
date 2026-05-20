@@ -359,12 +359,28 @@ struct ubench_benchmark_state_s {
   char *name;
 };
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
+#endif
+
+enum ubench_result_e {
+  UBENCH_RESULT_PASS,
+  UBENCH_RESULT_SKIP,
+  UBENCH_RESULT_FAIL
+};
+
 struct ubench_state_s {
   struct ubench_benchmark_state_s *benchmarks;
   size_t benchmarks_length;
   FILE *output;
   double confidence;
+  enum ubench_result_e result;
 };
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 /* extern to the global state ubench needs to execute */
 UBENCH_EXTERN struct ubench_state_s ubench_state;
@@ -426,6 +442,20 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 #endif
 
 #define UBENCH_DO_BENCHMARK() while (ubench_do_benchmark(ubench_run_state) > 0)
+
+#define UBENCH_SKIP()                                                          \
+  do {                                                                         \
+    UBENCH_PRINTF("%s:%i: Skipped\n", __FILE__, __LINE__);                     \
+    ubench_state.result = UBENCH_RESULT_SKIP;                                  \
+    return;                                                                    \
+  } while (0)
+
+#define UBENCH_FAIL()                                                          \
+  do {                                                                         \
+    UBENCH_PRINTF("%s:%i: Failure\n", __FILE__, __LINE__);                     \
+    ubench_state.result = UBENCH_RESULT_FAIL;                                  \
+    return;                                                                    \
+  } while (0)
 
 #define UBENCH_EX(SET, NAME)                                                   \
   UBENCH_SURPRESS_WARNINGS_BEGIN                                               \
@@ -514,6 +544,12 @@ static UBENCH_INLINE int
 ubench_do_benchmark(struct ubench_run_state_s *const ubs) {
   const ubench_int64_t curr_sample = ubs->sample++;
   ubs->ns[curr_sample] = ubench_ns();
+
+  if (UBENCH_RESULT_SKIP == ubench_state.result ||
+      UBENCH_RESULT_FAIL == ubench_state.result) {
+    return 0;
+  }
+
   return curr_sample < ubs->size ? 1 : 0;
 }
 
@@ -623,10 +659,10 @@ int ubench_main(int argc, const char *const argv[]) {
   const char *filter = UBENCH_NULL;
   ubench_uint64_t ran_benchmarks = 0;
 
-  enum colours { RESET, GREEN, RED };
+  enum colours { RESET, GREEN, RED, YELLOW };
 
   const int use_colours = UBENCH_COLOUR_OUTPUT();
-  const char *colours[] = {"\033[0m", "\033[32m", "\033[31m"};
+  const char *colours[] = {"\033[0m", "\033[32m", "\033[31m", "\033[33m"};
   if (!use_colours) {
     for (index = 0; index < sizeof colours / sizeof colours[0]; index++) {
       colours[index] = "";
@@ -732,8 +768,32 @@ int ubench_main(int argc, const char *const argv[]) {
     ubs.size = 1;
     ubs.sample = 0;
 
+    ubench_state.result = UBENCH_RESULT_PASS;
+
     /* Time once to work out the base number of iterations to use. */
     ubench_state.benchmarks[index].func(&ubs);
+
+    if (UBENCH_RESULT_SKIP == ubench_state.result) {
+      printf("%s[  SKIPPED ]%s %s\n", colours[YELLOW], colours[RESET],
+             ubench_state.benchmarks[index].name);
+      ubench_state.result = UBENCH_RESULT_PASS;
+      continue;
+    }
+
+    if (UBENCH_RESULT_FAIL == ubench_state.result) {
+      printf("%s[  FAILED  ]%s %s\n", colours[RED], colours[RESET],
+             ubench_state.benchmarks[index].name);
+      {
+        const size_t failed_benchmark_index = failed_benchmarks_length++;
+        failed_benchmarks = UBENCH_PTR_CAST(
+            size_t *, realloc(UBENCH_PTR_CAST(void *, failed_benchmarks),
+                              sizeof(size_t) * failed_benchmarks_length));
+        failed_benchmarks[failed_benchmark_index] = index;
+        failed++;
+      }
+      ubench_state.result = UBENCH_RESULT_PASS;
+      continue;
+    }
 
     iterations = (100 * 1000 * 1000) / ((ns[1] <= ns[0]) ? 1 : ns[1] - ns[0]);
     iterations = iterations < min_iterations ? min_iterations : iterations;
@@ -909,7 +969,7 @@ UBENCH_C_FUNC void _ReadWriteBarrier(void);
 */
 #define UBENCH_STATE()                                                         \
   UBENCH_DECLARE_DO_NOTHING()                                                  \
-  struct ubench_state_s ubench_state = {0, 0, 0, 2.5}
+  struct ubench_state_s ubench_state = {0, 0, 0, 2.5, UBENCH_RESULT_PASS}
 
 /*
    define a main() function to call into ubench.h and start executing

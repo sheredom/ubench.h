@@ -35,6 +35,7 @@
 
 #if defined(_MSC_VER)
 #pragma warning(push, 0)
+#pragma warning(disable : 4702)
 #endif
 
 #if defined(__clang__)
@@ -125,6 +126,44 @@ UBENCH_EX_F_WRAP(UBENCH_FIXTURE, strchr_ex) {
   data[sizeof(data) - 1] = '\0';
 
   UBENCH_DO_BENCHMARK() { UBENCH_DO_NOTHING(strchr(data, 'f')); }
+}
+
+UBENCH_EX_WRAP(UBENCH_SUITE, skip) {
+  UBENCH_SKIP();
+  UBENCH_DO_BENCHMARK() {}
+  UBENCH_FAIL();
+}
+
+UBENCH_EX_WRAP(UBENCH_SUITE, skip_during) {
+  UBENCH_DO_BENCHMARK() {
+    UBENCH_SKIP();
+    UBENCH_FAIL();
+  }
+}
+
+UBENCH_EX_WRAP(UBENCH_SUITE, skip_after) {
+  UBENCH_DO_BENCHMARK() {}
+  UBENCH_SKIP();
+  UBENCH_FAIL();
+}
+
+UBENCH_EX_F_WRAP(UBENCH_FIXTURE, skip) {
+  UBENCH_SKIP();
+  UBENCH_DO_BENCHMARK() {
+    UBENCH_DO_NOTHING(strchr(ubench_fixture->data, 'f'));
+  }
+  UBENCH_FAIL();
+}
+
+UBENCH_WRAP(UBENCH_SUITE, skip_no_ex) {
+  UBENCH_SKIP();
+  UBENCH_FAIL();
+}
+
+UBENCH_F_WRAP(UBENCH_FIXTURE, skip_no_ex) {
+  UBENCH_SKIP();
+  UBENCH_DO_NOTHING(strchr(ubench_fixture->data, 'f'));
+  UBENCH_FAIL();
 }
 
 #if defined(__clang__)
