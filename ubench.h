@@ -445,12 +445,14 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 
 #define UBENCH_SKIP()                                                          \
   do {                                                                         \
+    UBENCH_PRINTF("%s:%i: Skipped\n", __FILE__, __LINE__);                     \
     ubench_state.result = UBENCH_RESULT_SKIP;                                  \
     return;                                                                    \
   } while (0)
 
 #define UBENCH_FAIL()                                                          \
   do {                                                                         \
+    UBENCH_PRINTF("%s:%i: Failure\n", __FILE__, __LINE__);                     \
     ubench_state.result = UBENCH_RESULT_FAIL;                                  \
     return;                                                                    \
   } while (0)
