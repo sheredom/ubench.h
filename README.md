@@ -273,6 +273,12 @@ test.c:12: Failure
 [  FAILED  ] foo.bar
 ```
 
+## AI Usage
+
+AI tool use is explicitly permitted in commits to this repository. There is a
+tagged release [pre-ai](https://github.com/sheredom/ubench.h/releases/tag/pre-ai)
+that denotes the last release where AI tooling was not used.
+
 ## License
 
 This is free and unencumbered software released into the public domain.
