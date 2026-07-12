@@ -423,14 +423,24 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 
 #if defined(__clang__)
 #if __has_warning("-Wunsafe-buffer-usage")
+#define UBENCH_SURPRESS_UNSAFE_BUFFER_USAGE                                    \
+  _Pragma("clang diagnostic ignored \"-Wunsafe-buffer-usage\"")
+#else
+#define UBENCH_SURPRESS_UNSAFE_BUFFER_USAGE
+#endif
+
+#if __has_warning("-Wglobal-constructors")
+#define UBENCH_SURPRESS_GLOBAL_CONSTRUCTORS                                    \
+  _Pragma("clang diagnostic ignored \"-Wglobal-constructors\"")
+#else
+#define UBENCH_SURPRESS_GLOBAL_CONSTRUCTORS
+#endif
+
 #define UBENCH_SURPRESS_WARNINGS_BEGIN                                         \
   _Pragma("clang diagnostic push")                                             \
-      _Pragma("clang diagnostic ignored \"-Wunsafe-buffer-usage\"")
+      UBENCH_SURPRESS_UNSAFE_BUFFER_USAGE                                      \
+          UBENCH_SURPRESS_GLOBAL_CONSTRUCTORS
 #define UBENCH_SURPRESS_WARNINGS_END _Pragma("clang diagnostic pop")
-#else
-#define UBENCH_SURPRESS_WARNINGS_BEGIN
-#define UBENCH_SURPRESS_WARNINGS_END
-#endif
 #elif defined(__GNUC__) && __GNUC__ >= 8 && defined(__cplusplus)
 #define UBENCH_SURPRESS_WARNINGS_BEGIN                                         \
   _Pragma("GCC diagnostic push")                                               \
