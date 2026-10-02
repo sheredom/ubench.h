@@ -27,9 +27,7 @@
 
 #include "ubench.h"
 
-UBENCH(strict, do_nothing) {
+UBENCH(strict_c99, do_nothing) {
   int value = 0;
   UBENCH_DO_NOTHING(&value);
 }
-
-UBENCH_MAIN()

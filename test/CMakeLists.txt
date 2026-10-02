@@ -82,15 +82,18 @@ endfunction()
 ubench_set_c_flags(main.c  "-std=gnu89")
 ubench_set_c_flags(test.c  "-std=gnu89")
 ubench_set_c_flags(test99.c "-std=gnu99")
+ubench_set_c_flags(test_strict99.c "-std=c99")
 
 list(FIND CMAKE_C_COMPILE_FEATURES c_std_11 IDX)
 if(${IDX} GREATER -1)
   ubench_set_c_flags(test11.c "-std=gnu11")
+  ubench_set_c_flags(test_strict11.c "-std=c11")
 endif()
 
 list(FIND CMAKE_C_COMPILE_FEATURES c_std_17 IDX)
 if(${IDX} GREATER -1)
   ubench_set_c_flags(test17.c "-std=gnu17")
+  ubench_set_c_flags(test_strict17.c "-std=c17")
 endif()
 
 list(FIND CMAKE_C_COMPILE_FEATURES c_std_23 IDX)
@@ -128,6 +131,9 @@ set(UBENCH_TEST_SOURCES
   main.c
   test.c
   test99.c
+  test_strict99.c
+  test_strict11.c
+  test_strict17.c
   test11.c
   test17.c
   test23.c
@@ -145,20 +151,6 @@ function(ubench_add_test NAME)
   add_executable(${NAME} ${UBENCH_TEST_SOURCES})
   add_test(NAME ${NAME} COMMAND $<TARGET_FILE:${NAME}> --confidence=100)
 endfunction()
-
-# Instantiate the benchmark macros in ISO C language modes.
-if(UBENCH_USE_STD_FLAG)
-  ubench_set_c_flags(strict.c "")
-  foreach(STANDARD 99 11 17)
-    if("c_std_${STANDARD}" IN_LIST CMAKE_C_COMPILE_FEATURES)
-      set(NAME "ubench_strict_c${STANDARD}_test")
-      add_executable(${NAME} strict.c)
-      set_target_properties(${NAME} PROPERTIES
-        C_STANDARD ${STANDARD} C_STANDARD_REQUIRED TRUE C_EXTENSIONS FALSE)
-      add_test(NAME ${NAME} COMMAND $<TARGET_FILE:${NAME}> --confidence=100)
-    endif()
-  endforeach()
-endif()
 
 ubench_add_test(ubench_test)
 
