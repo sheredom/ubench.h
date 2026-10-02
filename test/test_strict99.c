@@ -25,9 +25,17 @@
    For more information, please refer to <http://unlicense.org/>
 */
 
+/* Enable the POSIX functions used by the shared tests in strict C modes. */
+#if defined(__linux__) && !defined(_DEFAULT_SOURCE)
+#define _DEFAULT_SOURCE
+#endif
+
 #include "ubench.h"
 
-UBENCH(strict_c99, do_nothing) {
-  int value = 0;
-  UBENCH_DO_NOTHING(&value);
-}
+struct strict_c99_my_fixture {
+  char *data;
+};
+
+#define UBENCH_SUITE strict_c99
+#define UBENCH_FIXTURE strict_c99_my_fixture
+#include "test_shared.h"
