@@ -27,7 +27,20 @@
 
 /* Enable the POSIX functions used by the shared tests in strict C modes. */
 #if defined(__linux__) && !defined(_DEFAULT_SOURCE)
+#if defined(__clang__)
+#if __has_warning("-Wreserved-id-macro")
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
+#endif
+#endif
+
 #define _DEFAULT_SOURCE
+
+#if defined(__clang__)
+#if __has_warning("-Wreserved-id-macro")
+#pragma clang diagnostic pop
+#endif
+#endif
 #endif
 
 #include "ubench.h"
