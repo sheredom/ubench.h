@@ -146,6 +146,20 @@ function(ubench_add_test NAME)
   add_test(NAME ${NAME} COMMAND $<TARGET_FILE:${NAME}> --confidence=100)
 endfunction()
 
+# Instantiate the benchmark macros in ISO C language modes.
+if(UBENCH_USE_STD_FLAG)
+  ubench_set_c_flags(strict.c "")
+  foreach(STANDARD 99 11 17)
+    if("c_std_${STANDARD}" IN_LIST CMAKE_C_COMPILE_FEATURES)
+      set(NAME "ubench_strict_c${STANDARD}_test")
+      add_executable(${NAME} strict.c)
+      set_target_properties(${NAME} PROPERTIES
+        C_STANDARD ${STANDARD} C_STANDARD_REQUIRED TRUE C_EXTENSIONS FALSE)
+      add_test(NAME ${NAME} COMMAND $<TARGET_FILE:${NAME}> --confidence=100)
+    endif()
+  endforeach()
+endif()
+
 ubench_add_test(ubench_test)
 
 # Whole-program-optimization variant.
