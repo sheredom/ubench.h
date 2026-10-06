@@ -958,13 +958,13 @@ UBENCH_C_FUNC void _ReadWriteBarrier(void);
   void ubench_do_nothing(void *ptr) {                                          \
     _Pragma("clang diagnostic push")                                           \
         _Pragma("clang diagnostic ignored \"-Wlanguage-extension-token\"");    \
-    asm volatile("" : : "r"(ptr), "m"(ptr) : "memory");                        \
+    __asm__ volatile("" : : "r"(ptr), "m"(ptr) : "memory");                    \
     _Pragma("clang diagnostic pop");                                           \
   }
 #else
 #define UBENCH_DECLARE_DO_NOTHING()                                            \
   void ubench_do_nothing(void *ptr) {                                          \
-    asm volatile("" : : "r"(ptr), "m"(ptr) : "memory");                        \
+    __asm__ volatile("" : : "r"(ptr), "m"(ptr) : "memory");                    \
   }
 #endif
 

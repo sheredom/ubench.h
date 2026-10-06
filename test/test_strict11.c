@@ -1,0 +1,54 @@
+/*
+   This is free and unencumbered software released into the public domain.
+
+   Anyone is free to copy, modify, publish, use, compile, sell, or
+   distribute this software, either in source code form or as a compiled
+   binary, for any purpose, commercial or non-commercial, and by any
+   means.
+
+   In jurisdictions that recognize copyright laws, the author or authors
+   of this software dedicate any and all copyright interest in the
+   software to the public domain. We make this dedication for the benefit
+   of the public at large and to the detriment of our heirs and
+   successors. We intend this dedication to be an overt act of
+   relinquishment in perpetuity of all present and future rights to this
+   software under copyright law.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+   IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+   OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+   ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+   OTHER DEALINGS IN THE SOFTWARE.
+
+   For more information, please refer to <http://unlicense.org/>
+*/
+
+/* Enable the POSIX functions used by the shared tests in strict C modes. */
+#if defined(__linux__) && !defined(_DEFAULT_SOURCE)
+#if defined(__clang__)
+#if __has_warning("-Wreserved-id-macro")
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
+#endif
+#endif
+
+#define _DEFAULT_SOURCE
+
+#if defined(__clang__)
+#if __has_warning("-Wreserved-id-macro")
+#pragma clang diagnostic pop
+#endif
+#endif
+#endif
+
+#include "ubench.h"
+
+struct strict_c11_my_fixture {
+  char *data;
+};
+
+#define UBENCH_SUITE strict_c11
+#define UBENCH_FIXTURE strict_c11_my_fixture
+#include "test_shared.h"
