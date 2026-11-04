@@ -100,6 +100,13 @@ UBENCH_EX_WRAP(UBENCH_SUITE, ex) {
 #if __has_warning("-Wunsafe-buffer-usage")
 #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #endif
+/* glibc C23 generic string macros trigger these diagnostics. */
+#if __has_warning("-Wdisabled-macro-expansion")
+#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
+#endif
+#if __has_warning("-Wpre-c11-compat")
+#pragma clang diagnostic ignored "-Wpre-c11-compat"
+#endif
 #endif
 
 UBENCH_F_SETUP_WRAP(UBENCH_FIXTURE) {
