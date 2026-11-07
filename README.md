@@ -27,6 +27,9 @@ ubench.h supports some command line options:
 * `--output=<output>`will output a CSV file of the results.
 * `--confidence=<confidence>` will change the confidence cut-off for a failed
   test.
+* `--duration=<milliseconds>` sets the target measurement duration for each
+  benchmark. The default is `100` milliseconds. Values must be positive decimal
+  integers whose nanosecond conversion fits in a signed 64-bit value.
 
 ## Design
 
@@ -57,13 +60,15 @@ You can change the default threshold of `2.5%` by specifying the
 `--confidence=<confidence>` option, but it is recommended that you keep a value
 that is sufficiently low to enable reproducible results.
 
-The number of iterations ran for each test is proportionate to the time taken to
-run each benchmark. The framework aims to run a single set of iterations of the
-benchmark in `100ms` - so if you benchmark takes `1ms` to run, it'll start with
-100 samples. The number of samples will increase on a failed run (a run of the
-benchmark that does not meet the confidence interval cutoff) up to a maximum of
-500 samples. At least 10 samples are always done even for longer running tests
-to ensure some meaningful confidence interval can be computed.
+The number of iterations run for each benchmark is proportionate to the time
+taken to run it. Before measuring, the framework runs one warm-up iteration to
+estimate the time per iteration. It then targets the duration selected by
+`--duration` (100ms by default); for example, a benchmark taking about 1ms per
+iteration starts with about 100 samples. At least 10 samples are always used,
+and each measurement pass is capped at 500 samples. If a pass does not meet the
+confidence cutoff, the framework takes additional measurements with larger
+sample counts, up to the same 500-sample cap. Those additional measurements can
+make the total time spent on a benchmark longer than its duration target.
 
 ## UBENCH_MAIN
 

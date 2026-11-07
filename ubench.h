@@ -660,14 +660,51 @@ static UBENCH_INLINE FILE *ubench_fopen(const char *filename,
 #endif
 }
 
+static UBENCH_INLINE int
+ubench_parse_duration(const char *value, ubench_int64_t *duration_ns) {
+  const ubench_uint64_t max_milliseconds =
+      ((~UBENCH_CAST(ubench_uint64_t, 0)) >> 1) / 1000000;
+  ubench_uint64_t milliseconds = 0;
+
+  if ('\0' == *value) {
+    return 0;
+  }
+
+  while ('\0' != *value) {
+    ubench_uint64_t digit = 0;
+
+    if ((*value < '0') || (*value > '9')) {
+      return 0;
+    }
+
+    digit = UBENCH_CAST(ubench_uint64_t, *value - '0');
+    if (milliseconds > (max_milliseconds - digit) / 10) {
+      return 0;
+    }
+
+    milliseconds = milliseconds * 10 + digit;
+    value++;
+  }
+
+  if (0 == milliseconds) {
+    return 0;
+  }
+
+  *duration_ns = UBENCH_CAST(ubench_int64_t, milliseconds * 1000000);
+  return 1;
+}
+
 static UBENCH_INLINE int ubench_main(int argc, const char *const argv[]);
 int ubench_main(int argc, const char *const argv[]) {
   ubench_uint64_t failed = 0;
+  int duration_error = 0;
   size_t index = 0;
   size_t *failed_benchmarks = UBENCH_NULL;
   size_t failed_benchmarks_length = 0;
   const char *filter = UBENCH_NULL;
   ubench_uint64_t ran_benchmarks = 0;
+  ubench_int64_t duration_ns =
+      UBENCH_CAST(ubench_int64_t, 100) * 1000 * 1000;
 
   enum colours { RESET, GREEN, RED, YELLOW };
 
@@ -688,6 +725,7 @@ int ubench_main(int argc, const char *const argv[]) {
     const char filter_str[] = "--filter=";
     const char output_str[] = "--output=";
     const char confidence_str[] = "--confidence=";
+    const char duration_str[] = "--duration=";
 
     if (0 == ubench_strncmp(argv[index], help_str, strlen(help_str))) {
       printf("ubench.h - the single file benchmarking solution for C/C++!\n"
@@ -700,6 +738,8 @@ int ubench_main(int argc, const char *const argv[]) {
              "  --output=<output>         Output a CSV file of the results.\n"
              "  --confidence=<confidence> Change the confidence cut-off for a "
              "failed test. Defaults to 2.5%%\n");
+      printf("  --duration=<milliseconds> Set the sample target per benchmark. "
+             "Defaults to 100ms.\n");
       goto cleanup;
     } else if (0 ==
                ubench_strncmp(argv[index], filter_str, strlen(filter_str))) {
@@ -709,6 +749,16 @@ int ubench_main(int argc, const char *const argv[]) {
                ubench_strncmp(argv[index], output_str, strlen(output_str))) {
       ubench_state.output =
           ubench_fopen(argv[index] + strlen(output_str), "w+");
+    } else if (0 == ubench_strncmp(argv[index], duration_str,
+                                   strlen(duration_str))) {
+      if (!ubench_parse_duration(argv[index] + strlen(duration_str),
+                                 &duration_ns)) {
+        fprintf(stderr,
+                "Invalid duration: expected a positive integer number of "
+                "milliseconds within the supported range.\n");
+        duration_error = 1;
+        goto cleanup;
+      }
     } else if (0 == ubench_strncmp(argv[index], list_str, strlen(list_str))) {
       for (index = 0; index < ubench_state.benchmarks_length; index++) {
         UBENCH_PRINTF("%s\n", ubench_state.benchmarks[index].name);
@@ -805,7 +855,7 @@ int ubench_main(int argc, const char *const argv[]) {
       continue;
     }
 
-    iterations = (100 * 1000 * 1000) / ((ns[1] <= ns[0]) ? 1 : ns[1] - ns[0]);
+    iterations = duration_ns / ((ns[1] <= ns[0]) ? 1 : ns[1] - ns[0]);
     iterations = iterations < min_iterations ? min_iterations : iterations;
     iterations = iterations > max_iterations ? max_iterations : iterations;
 
@@ -934,7 +984,7 @@ cleanup:
     fclose(ubench_state.output);
   }
 
-  return UBENCH_CAST(int, failed);
+  return duration_error ? 1 : UBENCH_CAST(int, failed);
 }
 
 #ifdef __clang__

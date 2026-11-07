@@ -154,6 +154,22 @@ endfunction()
 
 ubench_add_test(ubench_test)
 
+add_test(
+  NAME ubench_duration
+  COMMAND $<TARGET_FILE:ubench_test> --duration=1 --confidence=100
+          --filter=c.do_nothing
+)
+add_test(
+  NAME ubench_duration_zero
+  COMMAND $<TARGET_FILE:ubench_test> --duration=0 --list-benchmarks
+)
+set_tests_properties(ubench_duration_zero PROPERTIES WILL_FAIL TRUE)
+add_test(
+  NAME ubench_duration_overflow
+  COMMAND $<TARGET_FILE:ubench_test> --duration=9223372036855 --list-benchmarks
+)
+set_tests_properties(ubench_duration_overflow PROPERTIES WILL_FAIL TRUE)
+
 # Whole-program-optimization variant.
 ubench_add_test(ubench_test_wpo)
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
